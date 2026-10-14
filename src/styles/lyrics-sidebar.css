@@ -41,14 +41,28 @@
    flex-shrink: 0;
 }
 
-.lyrics-sidebar-body {
+.lyrics-sidebar-view {
+   position: relative;
    flex: 1;
-   overflow-y: auto;
-   padding: 16px;
-   scrollbar-width: none;
+   display: flex;
+   flex-direction: column;
+   min-height: 0;
+   overflow: hidden;
 }
 
-.lyrics-sidebar-body::-webkit-scrollbar {
+.lyrics-sidebar-body {
+   flex: 1;
+   overflow: hidden;
+   min-height: 0;
+}
+
+.lyrics-sidebar-body .lyrics-scroll {
+   height: 100%;
+   overflow-y: auto;
+   padding: 8px 16px 16px;
+   scrollbar-width: none;
+}
+.lyrics-sidebar-body .lyrics-scroll::-webkit-scrollbar {
    display: none;
 }
 

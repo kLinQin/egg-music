@@ -25,6 +25,14 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
 
    const translation = useTranslatedLyrics(lines, targetLang, showTranslation);
 
+   const translating = showTranslation && translation.loading;
+   const showOverlay = loading || translating;
+   const overlayText = loading
+      ? 'Memuat lirik...'
+      : `Menerjemahkan... ${translation.progress}%`;
+
+   const translationError = showTranslation && !translation.loading && translation.error;
+
    let activeIndex = -1;
    if (synced && lines.length > 0) {
       for (let i = lines.length - 1; i >= 0; i--) {
@@ -42,16 +50,18 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
    }, [activeIndex, synced]);
 
-   const content = (
+   const body = (
       <>
+         {translationError && (
+            <div className="lyrics-error-banner">
+               {translation.error}
+            </div>
+         )}
+
          {!track && (
             <div className="lyrics-view-placeholder">
                Pilih lagu untuk melihat lirik
             </div>
-         )}
-
-         {track && loading && (
-            <div className="lyrics-view-placeholder">Memuat lirik...</div>
          )}
 
          {track && !loading && (error || !result) && (
@@ -83,15 +93,34 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
             </div>
          )}
 
-         {!isPlaying && synced && activeIndex < 0 && track && !loading && result && (
+         {!isPlaying && synced && activeIndex < 0 && track && !loading && result && !translation.error && (
             <div className="lyrics-hint">Tekan play untuk sinkronisasi</div>
          )}
       </>
    );
 
+   const overlay = showOverlay && track ? (
+      <div className="lyrics-overlay">
+         <div className="lyrics-overlay-spinner" />
+         <div className="lyrics-overlay-text">{overlayText}</div>
+      </div>
+   ) : null;
+
    if (variant === 'sidebar') {
-      return <div className="lyrics-sidebar-body">{content}</div>;
+      return (
+         <div className="lyrics-sidebar-view">
+            <div className="lyrics-sidebar-body">
+               <div className="lyrics-scroll">{body}</div>
+            </div>
+            {overlay}
+         </div>
+      );
    }
 
-   return <div className="lyrics-panel">{content}</div>;
+   return (
+      <div className="lyrics-panel">
+         <div className="lyrics-scroll">{body}</div>
+         {overlay}
+      </div>
+   );
 }

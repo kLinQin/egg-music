@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LyricLine } from '../lib/lyrics';
-import { translateLine } from '../lib/translate';
+import { translateLine, QuotaError } from '../lib/translate';
 
 type State = {
    loading: boolean;
    translations: string[];
    error: string | null;
+   progress: number;
 };
 
-const PARALLEL = 4;
-const DELAY_MS = 100;
+const PARALLEL = 2;
+const DELAY_MS = 400;
 
 const memoryCache = new Map<string, string[]>();
 
@@ -22,6 +23,7 @@ export function useTranslatedLyrics(
       loading: false,
       translations: [],
       error: null,
+      progress: 0,
    });
 
    const cacheRef = useRef(memoryCache);
@@ -30,41 +32,58 @@ export function useTranslatedLyrics(
 
    useEffect(() => {
       if (!enabled || lines.length === 0) {
-         setState({ loading: false, translations: [], error: null });
+         setState({ loading: false, translations: [], error: null, progress: 0 });
          return;
       }
 
       const cacheKey = `${targetLang}::${linesKey}`;
       const cached = cacheRef.current.get(cacheKey);
       if (cached) {
-         setState({ loading: false, translations: cached, error: null });
+         setState({ loading: false, translations: cached, error: null, progress: 100 });
          return;
       }
 
       let cancelled = false;
-      setState({ loading: true, translations: [], error: null });
+      setState({ loading: true, translations: [], error: null, progress: 0 });
 
       const run = async () => {
          const results: string[] = new Array(lines.length).fill('');
+         let done = 0;
+
+         const shouldTranslate = (text: string) => {
+            const t = text.trim();
+            if (!t) return false;
+            if (t.length < 3) return false;
+            return true;
+         };
 
          const translateAt = async (i: number) => {
             if (cancelled) return;
             const text = lines[i].text.trim();
-            if (!text) return;
+            if (!shouldTranslate(text)) {
+               done++;
+               return;
+            }
 
-            // Coba target dulu, fallback ke 'en' kalau target bukan 'en'
             const sources = targetLang === 'en' ? [targetLang] : [targetLang, 'en'];
 
             for (const lang of sources) {
+               if (cancelled) return;
                try {
                   const res = await translateLine(text, lang);
                   results[i] = res.translated;
-                  return;
+                  break;
                } catch (err) {
+                  if (err instanceof QuotaError) throw err;
                   console.warn(`[translate] gagal (${lang}):`, text, err);
                }
             }
-            results[i] = '';
+
+            done++;
+            if (!cancelled) {
+               const pct = Math.round((done / lines.length) * 100);
+               setState((s) => (s.loading ? { ...s, progress: pct } : s));
+            }
          };
 
          try {
@@ -84,14 +103,29 @@ export function useTranslatedLyrics(
 
             if (!cancelled) {
                cacheRef.current.set(cacheKey, results);
-               setState({ loading: false, translations: results, error: null });
+               setState({
+                  loading: false,
+                  translations: results,
+                  error: null,
+                  progress: 100,
+               });
             }
          } catch (err) {
             if (cancelled) return;
+            if (err instanceof QuotaError) {
+               setState({
+                  loading: false,
+                  translations: [],
+                  error: 'Kuota terjemahan habis. Coba lagi besok.',
+                  progress: 0,
+               });
+               return;
+            }
             setState({
                loading: false,
                translations: [],
                error: (err as Error).message,
+               progress: 0,
             });
          }
       };

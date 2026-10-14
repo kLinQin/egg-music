@@ -2,6 +2,7 @@
    display: grid;
    grid-template-rows: 56px 1fr 90px;
    height: 100vh;
+   height: 100dvh;
    background: var(--bg);
 }
 
@@ -26,6 +27,10 @@
 }
 
 @media (max-width: 700px) {
+   .app {
+      grid-template-rows: 56px 1fr auto;
+   }
+
    .body {
       grid-template-columns: 1fr;
    }
