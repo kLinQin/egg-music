@@ -1,0 +1,14 @@
+/* ===================== App CSS — entry point =====================
+ * Urutan @import penting untuk cascade.
+ * ================================================================= */
+
+@import './styles/base.css';
+@import './styles/layout.css';
+@import './styles/header.css';
+@import './styles/sidebar.css';
+@import './styles/main.css';
+@import './styles/lyrics-sidebar.css';
+@import './styles/player-bar.css';
+@import './styles/controls.css';
+@import './styles/modal.css';
+@import './styles/responsive.css';

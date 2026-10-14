@@ -1,0 +1,106 @@
+@media (max-width: 900px) {
+   .body {
+      grid-template-columns: 240px 1fr;
+   }
+
+   .playlist-hero {
+      padding: 20px;
+      gap: 16px;
+   }
+
+   .playlist-cover {
+      width: 110px;
+      height: 110px;
+   }
+
+   .playlist-title {
+      font-size: 28px;
+   }
+
+   .track-row {
+      grid-template-columns: 28px minmax(140px, 3fr) minmax(100px, 2fr) 50px 70px 60px 55px;
+      gap: 8px;
+      padding: 6px 20px;
+   }
+
+   .track-row-header {
+      padding: 12px 20px 8px;
+   }
+}
+
+@media (max-width: 700px) {
+   .app {
+      grid-template-rows: 56px 1fr 130px;
+   }
+
+   .body {
+      display: block;
+      position: relative;
+      padding: 4px;
+      min-height: 0;
+   }
+
+   .sidebar {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      right: 4px;
+      bottom: 4px;
+      z-index: 20;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+      max-height: none;
+   }
+
+   .sidebar-collapsed {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 44px;
+      height: 44px;
+      padding: 4px;
+      z-index: 20;
+      box-shadow: none;
+   }
+
+   .main {
+      height: 100%;
+   }
+
+   .playlist-hero {
+      padding: 16px;
+      gap: 12px;
+   }
+
+   .playlist-cover {
+      width: 88px;
+      height: 88px;
+   }
+
+   .playlist-title {
+      font-size: 22px;
+   }
+
+   .playlist-stats {
+      font-size: 12px;
+   }
+
+   .playlist-tracks {
+      padding: 0 0 24px;
+   }
+
+   .track-row {
+      grid-template-columns: 28px minmax(120px, 1fr) 50px 55px;
+      gap: 8px;
+      padding: 8px 16px;
+   }
+
+   .track-row-header {
+      padding: 10px 16px 6px;
+   }
+
+   .col-album,
+   .col-bitrate,
+   .col-size {
+      display: none;
+   }
+}

@@ -1,0 +1,80 @@
+.lyrics-sidebar {
+   background: var(--bg-elev);
+   border-radius: 8px;
+   display: flex;
+   flex-direction: column;
+   min-height: 0;
+   overflow: hidden;
+}
+
+.lyrics-sidebar-collapsed {
+   width: 44px;
+   padding: 8px;
+   display: flex;
+   align-items: flex-start;
+   justify-content: center;
+}
+
+.lyrics-sidebar-header {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   padding: 8px 12px;
+   border-bottom: 1px solid var(--border);
+   flex-shrink: 0;
+}
+
+.lyrics-sidebar-header>span {
+   font-size: 14px;
+   font-weight: 700;
+   color: var(--text-mute);
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
+}
+
+.lyrics-sidebar-modes {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   padding: 8px 12px;
+   border-bottom: 1px solid var(--border);
+   flex-shrink: 0;
+}
+
+.lyrics-sidebar-body {
+   flex: 1;
+   overflow-y: auto;
+   padding: 16px;
+   scrollbar-width: none;
+}
+
+.lyrics-sidebar-body::-webkit-scrollbar {
+   display: none;
+}
+
+/* Reuse style lirik dari main.css — override untuk sidebar */
+
+.lyrics-sidebar .lyrics-content {
+   max-width: none;
+   margin: 0;
+}
+
+.lyrics-sidebar .lyrics-content.synced {
+   padding: 1vh 0;
+}
+
+.lyrics-sidebar .lyrics-content.plain {
+   padding: 0;
+}
+
+.lyrics-sidebar .lyric-line {
+   font-size: 15px;
+}
+
+.lyrics-sidebar .lyric-line.active {
+   font-size: 16px;
+}
+
+.lyrics-sidebar .lyrics-hint {
+   margin-top: 16px;
+}

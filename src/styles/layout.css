@@ -1,0 +1,38 @@
+.app {
+   display: grid;
+   grid-template-rows: 56px 1fr 90px;
+   height: 100vh;
+   background: var(--bg);
+}
+
+.body {
+   display: grid;
+   grid-template-columns: 320px 1fr 320px;
+   gap: 8px;
+   padding: 8px;
+   min-height: 0;
+}
+
+.app.sidebar-closed .body {
+   grid-template-columns: 44px 1fr 320px;
+}
+
+.app.lyrics-closed .body {
+   grid-template-columns: 320px 1fr 44px;
+}
+
+.app.sidebar-closed.lyrics-closed .body {
+   grid-template-columns: 44px 1fr 44px;
+}
+
+@media (max-width: 700px) {
+   .body {
+      grid-template-columns: 1fr;
+   }
+
+   .app.sidebar-closed .body,
+   .app.lyrics-closed .body,
+   .app.sidebar-closed.lyrics-closed .body {
+      grid-template-columns: 1fr;
+   }
+}

@@ -1,0 +1,55 @@
+:root {
+   --bg: #000;
+   --bg-elev: #121212;
+   --bg-panel: #181818;
+   --bg-hover: #1f1f1f;
+   --bg-active: #2a2a2a;
+   --border: #2a2a2a;
+   --text: #fff;
+   --text-mute: #a7a7a7;
+   --text-dim: #6a6a6a;
+   --accent: #1db954;
+   --accent-hover: #1ed760;
+}
+
+button {
+   font-family: inherit;
+}
+
+input[type='range'] {
+   -webkit-appearance: none;
+   appearance: none;
+   background: transparent;
+   cursor: pointer;
+   height: 16px;
+}
+
+input[type='range']::-webkit-slider-runnable-track {
+   height: 4px;
+   background: #4d4d4d;
+   border-radius: 2px;
+}
+
+input[type='range']::-webkit-slider-thumb {
+   -webkit-appearance: none;
+   appearance: none;
+   margin-top: -5px;
+   width: 12px;
+   height: 12px;
+   border-radius: 50%;
+   background: #fff;
+}
+
+input[type='range']::-moz-range-track {
+   height: 4px;
+   background: #4d4d4d;
+   border-radius: 2px;
+}
+
+input[type='range']::-moz-range-thumb {
+   width: 12px;
+   height: 12px;
+   border-radius: 50%;
+   background: #fff;
+   border: none;
+}
