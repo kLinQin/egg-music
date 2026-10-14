@@ -2,6 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { StoredTrack } from '../lib/db';
 import { trackToUrl, coverToUrl } from '../lib/audio';
 import { initEq, resumeEq } from '../lib/eq';
+import {
+   setupHandlers,
+   updateMetadata,
+   updatePlaybackState,
+   updatePositionState,
+} from '../lib/mediaSession';
 
 export type RepeatMode = 'off' | 'all' | 'one';
 
@@ -10,6 +16,7 @@ export function usePlayer(tracks: StoredTrack[]) {
    const urlRef = useRef<string | null>(null);
    const coverUrlRef = useRef<string | null>(null);
    const eqInitializedRef = useRef(false);
+   const autoPlayRef = useRef(false);
 
    const [currentId, setCurrentId] = useState<string | null>(null);
    const [isPlaying, setIsPlaying] = useState(false);
@@ -54,6 +61,19 @@ export function usePlayer(tracks: StoredTrack[]) {
       urlRef.current = url;
       audio.src = url;
       audio.load();
+
+      // Kalau ini dipicu oleh playTrack (bukan user manual), play setelah siap
+      if (autoPlayRef.current) {
+         autoPlayRef.current = false;
+         const onCanPlay = () => {
+            audio.removeEventListener('canplay', onCanPlay);
+            resumeEq()
+               .then(() => audio.play())
+               .then(() => setIsPlaying(true))
+               .catch(() => { });
+         };
+         audio.addEventListener('canplay', onCanPlay);
+      }
    }, [currentTrack]);
 
    // Load cover saat track berubah
@@ -101,14 +121,21 @@ export function usePlayer(tracks: StoredTrack[]) {
    }, [isPlaying, play, pause]);
 
    const playTrack = useCallback((id: string) => {
-      setCurrentId(id);
-      requestAnimationFrame(() => {
+      const audio = audioRef.current;
+
+      // Kalau track sama (repeat atau klik ulang), langsung play
+      if (audio && currentTrack?.id === id) {
+         audio.currentTime = 0;
          resumeEq()
-            .then(() => audioRef.current?.play())
+            .then(() => audio.play())
             .then(() => setIsPlaying(true))
             .catch(() => { });
-      });
-   }, []);
+         return;
+      }
+
+      autoPlayRef.current = true;
+      setCurrentId(id);
+   }, [currentTrack]);
 
    const pickNextId = useCallback(
       (dir: 1 | -1): string | null => {
@@ -199,6 +226,63 @@ export function usePlayer(tracks: StoredTrack[]) {
    useEffect(() => {
       if (audioRef.current) audioRef.current.volume = volume;
    }, [volume]);
+
+   // ==== Media Session: setup handlers sekali ====
+   useEffect(() => {
+      setupHandlers({
+         onPlay: () => {
+            play();
+         },
+         onPause: () => {
+            pause();
+         },
+         onNext: () => {
+            next();
+         },
+         onPrev: () => {
+            prev();
+         },
+         onSeekTo: (time) => {
+            const audio = audioRef.current;
+            if (!audio) return;
+            audio.currentTime = time;
+            setCurrentTime(time);
+         },
+         onSeekBy: (offset) => {
+            const audio = audioRef.current;
+            if (!audio) return;
+            const newTime = Math.max(
+               0,
+               Math.min(audio.duration || 0, audio.currentTime + offset)
+            );
+            audio.currentTime = newTime;
+            setCurrentTime(newTime);
+         },
+      });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, []);
+
+   // ==== Media Session: update metadata saat track berubah ====
+   useEffect(() => {
+      if (!currentTrack) return;
+      updateMetadata({
+         title: currentTrack.title || currentTrack.name,
+         artist: currentTrack.artist,
+         album: currentTrack.album,
+         coverUrl,
+      });
+   }, [currentTrack, coverUrl]);
+
+   // ==== Media Session: update playback state ====
+   useEffect(() => {
+      updatePlaybackState(isPlaying ? 'playing' : 'paused');
+   }, [isPlaying]);
+
+   // ==== Media Session: update position state ====
+   useEffect(() => {
+      if (!duration) return;
+      updatePositionState(duration, currentTime);
+   }, [duration, currentTime]);
 
    return {
       audioRef,

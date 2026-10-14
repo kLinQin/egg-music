@@ -8,6 +8,9 @@ type State = {
    error: string | null;
 };
 
+const memoryCache = new Map<string, LyricsResult | null>();
+const pendingRequests = new Map<string, Promise<LyricsResult | null>>();
+
 export function useLyrics(track: StoredTrack | null) {
    const [state, setState] = useState<State>({
       loading: false,
@@ -15,7 +18,7 @@ export function useLyrics(track: StoredTrack | null) {
       error: null,
    });
 
-   const cacheRef = useRef<Map<string, LyricsResult | null>>(new Map());
+   const cacheRef = useRef(memoryCache);
 
    useEffect(() => {
       if (!track) {
@@ -32,8 +35,10 @@ export function useLyrics(track: StoredTrack | null) {
       }
 
       const cacheKey = `${title}|${artist}`;
-      const cached = cacheRef.current.get(cacheKey);
-      if (cached !== undefined) {
+
+      // Cek cache
+      if (cacheRef.current.has(cacheKey)) {
+         const cached = cacheRef.current.get(cacheKey) ?? null;
          setState({ loading: false, result: cached, error: null });
          return;
       }
@@ -41,10 +46,23 @@ export function useLyrics(track: StoredTrack | null) {
       let cancelled = false;
       setState({ loading: true, result: null, error: null });
 
-      fetchLyrics(title, artist, track.album, track.duration)
+      // Cek pending request (hindari double fetch kalau ada 2 komponen minta lirik sama)
+      let promise = pendingRequests.get(cacheKey);
+      if (!promise) {
+         promise = fetchLyrics(title, artist, track.album, track.duration)
+            .then((res) => {
+               cacheRef.current.set(cacheKey, res);
+               return res;
+            })
+            .finally(() => {
+               pendingRequests.delete(cacheKey);
+            });
+         pendingRequests.set(cacheKey, promise);
+      }
+
+      promise
          .then((res) => {
             if (cancelled) return;
-            cacheRef.current.set(cacheKey, res);
             setState({ loading: false, result: res, error: null });
          })
          .catch((err) => {

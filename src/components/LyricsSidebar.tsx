@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import type { StoredTrack } from '../lib/db';
 import { LyricsView, type LyricsMode } from './LyricsView';
 
@@ -19,6 +19,7 @@ const MODES: { value: LyricsMode; label: string }[] = [
 
 export function LyricsSidebar({ open, onToggle, track, currentTime, isPlaying }: Props) {
    const [mode, setMode] = useState<LyricsMode>('plain');
+   const [lyricsEnabled, setLyricsEnabled] = useState(true);
 
    if (!open) {
       return (
@@ -38,13 +39,22 @@ export function LyricsSidebar({ open, onToggle, track, currentTime, isPlaying }:
       <aside className="lyrics-sidebar">
          <div className="lyrics-sidebar-header">
             <span>Lirik</span>
-            <button
-               className="btn icon-btn"
-               onClick={onToggle}
-               title="Tutup lirik"
-            >
-               <ChevronRight size={18} />
-            </button>
+            <div className="lyrics-sidebar-header-actions">
+               <button
+                  className={`btn icon-btn ${lyricsEnabled ? 'active' : ''}`}
+                  onClick={() => setLyricsEnabled((v) => !v)}
+                  title={lyricsEnabled ? 'Sembunyikan lirik' : 'Tampilkan lirik'}
+               >
+                  {lyricsEnabled ? <Eye size={16} /> : <EyeOff size={16} />}
+               </button>
+               <button
+                  className="btn icon-btn"
+                  onClick={onToggle}
+                  title="Tutup lirik"
+               >
+                  <ChevronRight size={18} />
+               </button>
+            </div>
          </div>
 
          <div className="lyrics-sidebar-modes">
@@ -62,7 +72,7 @@ export function LyricsSidebar({ open, onToggle, track, currentTime, isPlaying }:
          </div>
 
          <LyricsView
-            track={track}
+            track={lyricsEnabled ? track : null}
             currentTime={currentTime}
             isPlaying={isPlaying}
             variant="sidebar"
