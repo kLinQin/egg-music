@@ -10,8 +10,8 @@ export function Header({ onAddFiles, onAddFolder, importProgress }: Props) {
    return (
       <header className="header">
          <div className="header-brand">
-            <div className="header-logo">♪</div>
-            <span className="header-title">Music Player</span>
+            <img className="header-logo" src="/favicon.svg" alt="Egg Music" />
+            <span className="header-title">Egg Music</span>
          </div>
 
          {importProgress && (
