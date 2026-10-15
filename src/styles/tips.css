@@ -303,9 +303,9 @@
    white-space: nowrap;
 }
 
-/* ===== Mobile ===== */
+/* ===== Tablet & mobile: sidebar horizontal scroll (≤1024px) ===== */
 
-@media (max-width: 700px) {
+@media (max-width: 1024px) {
    .tips-view {
       flex-direction: column;
    }
@@ -352,7 +352,11 @@
       border-bottom-color: var(--accent);
       background: transparent;
    }
+}
 
+/* ===== Mobile: font lebih kecil (≤700px) ===== */
+
+@media (max-width: 700px) {
    .tips-content {
       padding: 16px 16px 48px;
    }

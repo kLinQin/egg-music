@@ -1,8 +1,4 @@
 @media (max-width: 900px) {
-   .body {
-      grid-template-columns: 240px 1fr;
-   }
-
    .playlist-hero {
       padding: 20px;
       gap: 16px;

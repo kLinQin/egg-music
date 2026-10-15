@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LyricLine } from '../lib/lyrics';
 import { translateLine, QuotaError } from '../lib/translate';
-import { translateGoogle } from '../lib/translateGoogle';
+import { translateGoogle, translateGoogleBatch } from '../lib/translateGoogle';
 
 export type TranslateProvider = 'mymemory' | 'google';
 
@@ -15,13 +15,15 @@ type State = {
 const memoryCache = new Map<string, string[]>();
 
 // Flag global: kalau Google kena 429, skip Google untuk request berikutnya
-// selama sesi ini (biar tidak spam dan fallback langsung ke MyMemory)
 let googleBlockedUntil = 0;
 
-function params(provider: TranslateProvider) {
-   return provider === 'google'
-      ? { parallel: 1, delay: 2000 }
-      : { parallel: 2, delay: 400 };
+const GOOGLE_BLOCK_MS = 60_000;
+
+function shouldTranslate(text: string): boolean {
+   const t = text.trim();
+   if (!t) return false;
+   if (t.length < 3) return false;
+   return true;
 }
 
 export function useTranslatedLyrics(
@@ -62,110 +64,158 @@ export function useTranslatedLyrics(
       let cancelled = false;
       setState({ loading: true, translations: [], error: null, progress: 0 });
 
-      const { parallel: PARALLEL, delay: DELAY_MS } = params(provider);
-
       const run = async () => {
          const results: string[] = new Array(lines.length).fill('');
-         let done = 0;
          let allFailed = true;
-         let googleFails = 0;
 
-         const shouldTranslate = (text: string) => {
-            const t = text.trim();
-            if (!t) return false;
-            if (t.length < 3) return false;
-            return true;
-         };
+         // Kumpulkan index yang perlu diterjemahkan
+         const indices: number[] = [];
+         for (let i = 0; i < lines.length; i++) {
+            if (shouldTranslate(lines[i].text)) indices.push(i);
+         }
 
-         const tryGoogle = async (text: string, lang: string) => {
-            // Kalau Google baru saja 429, skip dulu
-            if (Date.now() < googleBlockedUntil) {
-               throw new Error('Google Translate sedang rate-limited');
-            }
-            try {
-               const res = await translateGoogle(text, lang);
-               return res.translated;
-            } catch (err) {
-               // Kalau 429, blokir Google 60 detik
-               if (err instanceof Error && err.message.includes('429')) {
-                  googleBlockedUntil = Date.now() + 60_000;
-                  googleFails++;
-               }
-               throw err;
-            }
-         };
+         if (indices.length === 0) {
+            // Semua baris kosong
+            cacheRef.current.set(cacheKey, results);
+            setState({
+               loading: false,
+               translations: results,
+               error: null,
+               progress: 100,
+            });
+            return;
+         }
 
-         const tryMyMemory = async (text: string, lang: string) => {
-            const res = await translateLine(text, lang);
-            return res.translated;
-         };
+         // ===== Helper: fallback per baris ke MyMemory =====
+         const fallbackMyMemory = async (
+            idxList: number[],
+            lang: string
+         ): Promise<number> => {
+            let done = 0;
+            const PARALLEL = 2;
+            const DELAY = 400;
 
-         const translateAt = async (i: number) => {
-            if (cancelled) return;
-            const text = lines[i].text.trim();
-            if (!shouldTranslate(text)) {
-               done++;
-               return;
-            }
-
-            const sources = targetLang === 'en' ? [targetLang] : [targetLang, 'en'];
-
-            for (const lang of sources) {
-               if (cancelled) return;
-
-               // Urutan provider: pilihan user dulu, lalu fallback
-               const chain: TranslateProvider[] =
-                  provider === 'google'
-                     ? ['google', 'mymemory']
-                     : ['mymemory', 'google'];
-
-               for (const p of chain) {
-                  if (cancelled) return;
-                  try {
-                     const translated =
-                        p === 'google'
-                           ? await tryGoogle(text, lang)
-                           : await tryMyMemory(text, lang);
-                     if (translated) {
-                        results[i] = translated;
-                        allFailed = false;
-                        done++;
-                        if (!cancelled) {
-                           const pct = Math.round((done / lines.length) * 100);
-                           setState((s) => (s.loading ? { ...s, progress: pct } : s));
+            for (let i = 0; i < idxList.length; i += PARALLEL) {
+               if (cancelled) return done;
+               const slice = idxList.slice(i, i + PARALLEL);
+               await Promise.all(
+                  slice.map(async (idx) => {
+                     if (cancelled) return;
+                     const text = lines[idx].text.trim();
+                     try {
+                        const res = await translateLine(text, lang);
+                        if (res.translated) {
+                           results[idx] = res.translated;
+                           allFailed = false;
                         }
-                        return;
+                     } catch (err) {
+                        if (err instanceof QuotaError) {
+                           console.warn('[translate] MyMemory quota habis');
+                        } else {
+                           console.warn('[translate:mymemory] gagal:', text, err);
+                        }
                      }
-                  } catch (err) {
-                     if (err instanceof QuotaError && p === 'mymemory') {
-                        console.warn('[translate] MyMemory quota habis, lanjut');
-                        continue;
-                     }
-                     console.warn(`[translate:${p}] gagal (${lang}):`, text, err);
-                  }
+                     done++;
+                  })
+               );
+               if (!cancelled) {
+                  const pct = Math.round((done / indices.length) * 100);
+                  setState((s) => (s.loading ? { ...s, progress: pct } : s));
+               }
+               if (i + PARALLEL < idxList.length) {
+                  await new Promise((r) => setTimeout(r, DELAY));
                }
             }
+            return done;
+         };
 
-            // Semua provider gagal untuk baris ini
-            done++;
-            if (!cancelled) {
-               const pct = Math.round((done / lines.length) * 100);
-               setState((s) => (s.loading ? { ...s, progress: pct } : s));
+         // ===== Helper: Google batch =====
+         const runGoogleBatch = async (lang: string): Promise<boolean> => {
+            if (Date.now() < googleBlockedUntil) {
+               return false;
+            }
+            const texts = indices.map((i) => lines[i].text.trim());
+            try {
+               const translated = await translateGoogleBatch(texts, lang);
+               translated.forEach((t, k) => {
+                  if (t) {
+                     results[indices[k]] = t;
+                     allFailed = false;
+                  }
+               });
+               setState((s) => (s.loading ? { ...s, progress: 100 } : s));
+               return true;
+            } catch (err) {
+               const msg = err instanceof Error ? err.message : String(err);
+               if (msg.includes('429')) {
+                  googleBlockedUntil = Date.now() + GOOGLE_BLOCK_MS;
+               }
+               console.warn(`[translate:google] batch gagal (${lang}):`, err);
+               return false;
+            }
+         };
+
+         // ===== Helper: Google per baris (fallback kalau batch gagal) =====
+         const runGooglePerLine = async (
+            idxList: number[],
+            lang: string
+         ): Promise<void> => {
+            for (const idx of idxList) {
+               if (cancelled) return;
+               if (results[idx]) continue; // sudah ada dari batch
+               if (Date.now() < googleBlockedUntil) return;
+               const text = lines[idx].text.trim();
+               try {
+                  const res = await translateGoogle(text, lang);
+                  if (res.translated) {
+                     results[idx] = res.translated;
+                     allFailed = false;
+                  }
+               } catch (err) {
+                  const msg = err instanceof Error ? err.message : String(err);
+                  if (msg.includes('429')) {
+                     googleBlockedUntil = Date.now() + GOOGLE_BLOCK_MS;
+                     return;
+                  }
+                  console.warn('[translate:google] gagal:', text, err);
+               }
             }
          };
 
          try {
-            for (let i = 0; i < lines.length; i += PARALLEL) {
+            // Sumber bahasa: target dulu, fallback ke 'en'
+            const sources = targetLang === 'en' ? [targetLang] : [targetLang, 'en'];
+
+            // Urutan provider sesuai pilihan user
+            const chain: TranslateProvider[] =
+               provider === 'google'
+                  ? ['google', 'mymemory']
+                  : ['mymemory', 'google'];
+
+            for (const lang of sources) {
                if (cancelled) return;
 
-               const batch: Promise<void>[] = [];
-               for (let j = i; j < Math.min(i + PARALLEL, lines.length); j++) {
-                  batch.push(translateAt(j));
-               }
-               await Promise.all(batch);
+               // Cek apakah masih ada baris yang belum diterjemahkan
+               const remaining = indices.filter((i) => !results[i]);
+               if (remaining.length === 0) break;
 
-               if (i + PARALLEL < lines.length) {
-                  await new Promise((r) => setTimeout(r, DELAY_MS));
+               for (const p of chain) {
+                  if (cancelled) return;
+
+                  const stillRemaining = indices.filter((i) => !results[i]);
+                  if (stillRemaining.length === 0) break;
+
+                  if (p === 'google') {
+                     // Coba batch dulu
+                     const ok = await runGoogleBatch(lang);
+                     if (!ok) {
+                        // Batch gagal — coba per baris
+                        await runGooglePerLine(stillRemaining, lang);
+                     }
+                  } else {
+                     // MyMemory — per baris (tidak ada batch di API kita)
+                     await fallbackMyMemory(stillRemaining, lang);
+                  }
                }
             }
 

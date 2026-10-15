@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, Music, FileText, Brain } from 'lucide-react';
 import type { StoredTrack } from '../lib/db';
 import { useLyrics } from '../hooks/useLyrics';
 import {
@@ -19,17 +19,45 @@ type Props = {
    mode: LyricsMode;
 };
 
+/* ===== Icon Google resmi (SVG) ===== */
+function GoogleIcon({ size = 16 }: { size?: number }) {
+   return (
+      <svg
+         width={size}
+         height={size}
+         viewBox="0 0 48 48"
+         xmlns="http://www.w3.org/2000/svg"
+         aria-hidden="true"
+      >
+         <path
+            fill="#FFC107"
+            d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"
+         />
+         <path
+            fill="#FF3D00"
+            d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"
+         />
+         <path
+            fill="#4CAF50"
+            d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"
+         />
+         <path
+            fill="#1976D2"
+            d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"
+         />
+      </svg>
+   );
+}
+
 export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Props) {
    const {
       loading,
       result,
       error,
-      manual,
       provider,
       setProvider,
       pickManual,
       pickManualOvh,
-      resetToAuto,
    } = useLyrics(track);
    const activeLineRef = useRef<HTMLParagraphElement>(null);
 
@@ -40,6 +68,7 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
    const [searchResults, setSearchResults] = useState<LyricsSearchItem[]>([]);
    const [translateProvider, setTranslateProvider] =
       useState<TranslateProvider>('google');
+   const [popup, setPopup] = useState<'lyrics' | 'translate' | null>(null);
 
    const lines = result?.lines ?? [];
    const synced = result?.synced ?? false;
@@ -80,6 +109,23 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
    }, [activeIndex, synced]);
 
+   // Close popup saat klik di luar
+   useEffect(() => {
+      if (!popup) return;
+      const onClick = (e: MouseEvent) => {
+         const target = e.target as HTMLElement;
+         if (!target.closest('.lyrics-bottom-bar')) {
+            setPopup(null);
+         }
+      };
+      document.addEventListener('mousedown', onClick);
+      return () => document.removeEventListener('mousedown', onClick);
+   }, [popup]);
+
+   // Query gabungan: ambil yang tidak kosong
+   const buildQuery = () =>
+      [searchArtist.trim(), searchTitle.trim()].filter(Boolean).join(' ');
+
    const openSearch = () => {
       if (!track) return;
       const title = track.title || track.name.replace(/\.[^.]+$/, '');
@@ -87,6 +133,7 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
       setSearchArtist(artist);
       setSearchTitle(title);
       setSearchResults([]);
+      setPopup(null);
       setSearchOpen(true);
    };
 
@@ -97,10 +144,10 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
    };
 
    const submitSearch = async () => {
-      if (!searchTitle.trim()) return;
+      const query = buildQuery();
+      if (!query) return;
       setSearchLoading(true);
       try {
-         const query = `${searchTitle} ${searchArtist}`.trim();
          const res = await searchLyrics(query);
          setSearchResults(res);
       } catch (err) {
@@ -124,6 +171,16 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
       if (!searchArtist.trim() || !searchTitle.trim()) return;
       pickManualOvh(searchArtist.trim(), searchTitle.trim());
       closeSearch();
+   };
+
+   const chooseLyricsProvider = (p: 'lrclib' | 'lyricsovh') => {
+      setProvider(p);
+      setPopup(null);
+   };
+
+   const chooseTranslateProvider = (p: TranslateProvider) => {
+      setTranslateProvider(p);
+      setPopup(null);
    };
 
    const body = (
@@ -181,85 +238,113 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
    ) : null;
 
    const searchBar = track && (
-      <div className="lyrics-search-bar">
+      <div className="lyrics-bottom-bar">
          {!searchOpen ? (
             <>
-               <button
-                  className={`lyrics-provider-btn ${provider === 'lrclib' ? 'active' : ''}`}
-                  onClick={() => setProvider('lrclib')}
-                  title="Sumber lirik: LRCLIB"
-               >
-                  LRCLIB
-               </button>
-               <button
-                  className={`lyrics-provider-btn ${provider === 'lyricsovh' ? 'active' : ''}`}
-                  onClick={() => setProvider('lyricsovh')}
-                  title="Sumber lirik: lyrics.ovh"
-               >
-                  lyrics.ovh
-               </button>
-
-               {showTranslation && (
-                  <>
-                     <span className="lyrics-toolbar-divider" />
+               {/* Popup untuk Sumber Lirik */}
+               {popup === 'lyrics' && (
+                  <div className="lyrics-popup">
                      <button
-                        className={`lyrics-provider-btn ${translateProvider === 'google' ? 'active' : ''}`}
-                        onClick={() => setTranslateProvider('google')}
-                        title="Terjemahan: Google"
+                        className={`lyrics-popup-item ${provider === 'lrclib' ? 'active' : ''}`}
+                        onClick={() => chooseLyricsProvider('lrclib')}
                      >
-                        Google
+                        <Music size={16} />
+                        <span>LRCLIB</span>
                      </button>
                      <button
-                        className={`lyrics-provider-btn ${translateProvider === 'mymemory' ? 'active' : ''}`}
-                        onClick={() => setTranslateProvider('mymemory')}
-                        title="Terjemahan: MyMemory"
+                        className={`lyrics-popup-item ${provider === 'lyricsovh' ? 'active' : ''}`}
+                        onClick={() => chooseLyricsProvider('lyricsovh')}
                      >
-                        MyMemory
+                        <FileText size={16} />
+                        <span>lyrics.ovh</span>
                      </button>
-                  </>
+                  </div>
                )}
 
-               <button
-                  className="btn icon-btn"
-                  onClick={openSearch}
-                  title="Cari lirik manual"
-               >
-                  <Search size={14} />
-               </button>
-               {manual && (
+               {/* Popup untuk Sumber Translate */}
+               {popup === 'translate' && showTranslation && (
+                  <div className="lyrics-popup">
+                     <button
+                        className={`lyrics-popup-item ${translateProvider === 'google' ? 'active' : ''}`}
+                        onClick={() => chooseTranslateProvider('google')}
+                     >
+                        <GoogleIcon size={16} />
+                        <span>Google</span>
+                     </button>
+                     <button
+                        className={`lyrics-popup-item ${translateProvider === 'mymemory' ? 'active' : ''}`}
+                        onClick={() => chooseTranslateProvider('mymemory')}
+                     >
+                        <Brain size={16} />
+                        <span>MyMemory</span>
+                     </button>
+                  </div>
+               )}
+
+               {/* Bottom bar 3 kolom */}
+               <div className="lyrics-bottom-bar-inner">
                   <button
-                     className="btn icon-btn"
-                     onClick={resetToAuto}
-                     title="Kembali ke auto search"
+                     className={`lyrics-bottom-btn lyrics-bottom-btn--left ${popup === 'lyrics' ? 'open' : ''}`}
+                     onClick={() => setPopup((p) => (p === 'lyrics' ? null : 'lyrics'))}
+                     title="Sumber lirik"
                   >
-                     <X size={14} />
+                     {provider === 'lrclib' ? <Music size={14} /> : <FileText size={14} />}
+                     <span>{provider === 'lrclib' ? 'LRCLIB' : 'lyrics.ovh'}</span>
                   </button>
-               )}
+
+                  <button
+                     className={`lyrics-bottom-btn lyrics-bottom-btn--middle ${popup === 'translate' ? 'open' : ''}`}
+                     onClick={() => showTranslation && setPopup((p) => (p === 'translate' ? null : 'translate'))}
+                     disabled={!showTranslation}
+                     title="Sumber terjemahan"
+                  >
+                     {translateProvider === 'google' ? (
+                        <GoogleIcon size={14} />
+                     ) : (
+                        <Brain size={14} />
+                     )}
+                     <span>{translateProvider === 'google' ? 'Google' : 'MyMemory'}</span>
+                  </button>
+
+                  <button
+                     className="lyrics-bottom-btn lyrics-bottom-btn--right"
+                     onClick={openSearch}
+                     title="Cari lirik manual"
+                  >
+                     <Search size={16} />
+                  </button>
+               </div>
             </>
          ) : (
             <div className="lyrics-search-panel">
-               <input
-                  className="lyrics-search-input"
-                  placeholder="Nama artist..."
-                  value={searchArtist}
-                  autoFocus
-                  onChange={(e) => setSearchArtist(e.target.value)}
-               />
-               <input
-                  className="lyrics-search-input"
-                  placeholder="Judul lagu..."
-                  value={searchTitle}
-                  onChange={(e) => setSearchTitle(e.target.value)}
-                  onKeyDown={(e) => {
-                     if (e.key === 'Enter') submitSearch();
-                     if (e.key === 'Escape') closeSearch();
-                  }}
-               />
+               <div className="lyrics-search-inputs">
+                  <input
+                     className="lyrics-search-input"
+                     placeholder="Artist..."
+                     value={searchArtist}
+                     autoFocus
+                     onChange={(e) => setSearchArtist(e.target.value)}
+                     onKeyDown={(e) => {
+                        if (e.key === 'Enter') submitSearch();
+                        if (e.key === 'Escape') closeSearch();
+                     }}
+                  />
+                  <input
+                     className="lyrics-search-input"
+                     placeholder="Judul lagu..."
+                     value={searchTitle}
+                     onChange={(e) => setSearchTitle(e.target.value)}
+                     onKeyDown={(e) => {
+                        if (e.key === 'Enter') submitSearch();
+                        if (e.key === 'Escape') closeSearch();
+                     }}
+                  />
+               </div>
                <div className="lyrics-search-actions">
                   <button
                      className="lyrics-search-provider-btn"
                      onClick={submitSearch}
-                     disabled={searchLoading || !searchTitle.trim()}
+                     disabled={searchLoading || !buildQuery()}
                   >
                      {searchLoading ? '...' : 'LRCLIB'}
                   </button>
@@ -271,7 +356,7 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
                      lyrics.ovh
                   </button>
                   <button
-                     className="btn icon-btn"
+                     className="lyrics-search-provider-btn lyrics-search-close-btn"
                      onClick={closeSearch}
                      title="Tutup"
                   >

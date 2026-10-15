@@ -578,99 +578,172 @@
    text-align: center;
 }
 
-/* ===== Lyrics search bar ===== */
+/* ===== Lyrics bottom bar ===== */
 
-.lyrics-search-bar {
+.lyrics-bottom-bar {
    position: absolute;
    bottom: 0;
    right: 0;
    left: 0;
-   padding: 8px 16px;
-   background: linear-gradient(0deg, var(--bg-elev) 60%, transparent);
    z-index: 8;
    pointer-events: none;
-   display: flex;
-   align-items: center;
-   justify-content: flex-end;
-   gap: 6px;
 }
 
-.lyrics-search-bar>* {
+.lyrics-bottom-bar>* {
    pointer-events: auto;
 }
 
-.lyrics-search-bar .btn.icon-btn {
-   width: 32px;
-   height: 32px;
-   color: var(--text-mute);
-   background: var(--bg-panel);
-   border: 1px solid var(--border);
-   border-radius: 50%;
+.lyrics-bottom-bar-inner {
+   display: grid;
+   grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) minmax(0, 1fr);
+   gap: 4px;
+   padding: 4px 4px;
+   background: linear-gradient(0deg, var(--bg-elev) 60%, transparent);
+   align-items: center;
+   box-sizing: border-box;
 }
 
-.lyrics-search-bar .btn.icon-btn:hover {
-   color: var(--text);
-   background: var(--bg-hover);
-}
+/* ===== Bottom bar buttons ===== */
 
-/* Provider buttons */
-
-.lyrics-provider-btn {
+.lyrics-bottom-btn {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 6px;
+   height: 30px;
+   padding: 0 5px;
    background: var(--bg-panel);
    border: 1px solid var(--border);
-   border-radius: 6px;
+   border-radius: 4px;
    color: var(--text-mute);
    font-size: 11px;
    font-weight: 600;
    font-family: inherit;
-   padding: 6px 10px;
-   height: 32px;
    cursor: pointer;
    transition: background 0.15s, color 0.15s, border-color 0.15s;
+   white-space: nowrap;
+   overflow: hidden;
+   text-overflow: ellipsis;
 }
 
-.lyrics-provider-btn:hover {
+.lyrics-bottom-btn:hover:not(:disabled) {
    color: var(--text);
    background: var(--bg-hover);
 }
 
-.lyrics-provider-btn.active {
-   background: var(--accent);
-   color: #000;
+.lyrics-bottom-btn:disabled {
+   opacity: 0.4;
+   cursor: not-allowed;
+}
+
+.lyrics-bottom-btn.open {
    border-color: var(--accent);
+   color: var(--text);
 }
 
-.lyrics-provider-btn.active:hover {
-   background: var(--accent-hover);
+.lyrics-bottom-btn--right {
+   padding: 0;
 }
 
-.lyrics-toolbar-divider {
-   width: 1px;
-   height: 20px;
-   background: var(--border);
-   margin: 0 2px;
-   flex-shrink: 0;
+.lyrics-bottom-btn span {
+   overflow: hidden;
+   text-overflow: ellipsis;
+   white-space: nowrap;
 }
+
+/* ===== Popup di atas bottom bar ===== */
+
+.lyrics-popup {
+   position: absolute;
+   bottom: 100%;
+   left: 4px;
+   right: 4px;
+   margin-bottom: 1px;
+   background: var(--bg-panel);
+   border: 1px solid var(--border);
+   border-radius: 6px;
+   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+   overflow: hidden;
+   display: flex;
+   flex-direction: row;
+   box-sizing: border-box;
+}
+
+.lyrics-popup-item {
+   flex: 1 1 0;
+   min-width: 0;
+   width: 50%;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   padding: 10px 12px;
+   background: transparent;
+   border: none;
+   border-right: 1px solid var(--border);
+   color: var(--text-mute);
+   font-size: 12px;
+   font-weight: 600;
+   font-family: inherit;
+   text-align: center;
+   cursor: pointer;
+   transition: background 0.15s, color 0.15s;
+   white-space: nowrap;
+   overflow: hidden;
+   text-overflow: ellipsis;
+}
+
+.lyrics-popup-item:last-child {
+   border-right: none;
+}
+
+.lyrics-popup-item:hover {
+   background: var(--bg-hover);
+   color: var(--text);
+}
+
+.lyrics-popup-item.active {
+   background: var(--bg-active);
+   color: var(--accent);
+}
+
+.lyrics-popup-item.active::after {
+   content: '✓';
+   margin-left: 6px;
+   color: var(--accent);
+   font-weight: 700;
+}
+
+/* ===== Lyrics search panel ===== */
 
 .lyrics-search-panel {
    display: flex;
    flex-direction: column;
-   gap: 6px;
+   gap: 4px;
    position: relative;
-   flex: 1;
-   width: 100%;
+   padding: 4px;
+   background: linear-gradient(0deg, var(--bg-elev) 60%, transparent);
+   box-sizing: border-box;
+}
+
+.lyrics-search-inputs {
+   display: grid;
+   grid-template-columns: 1fr 1fr;
+   gap: 4px;
 }
 
 .lyrics-search-input {
    width: 100%;
+   height: 30px;
    background: var(--bg-panel);
    border: 1px solid var(--border);
-   border-radius: 6px;
-   padding: 8px 12px;
+   border-radius: 4px;
+   padding: 0 10px;
    color: var(--text);
-   font-size: 13px;
+   font-size: 12px;
    font-family: inherit;
    outline: none;
+   box-sizing: border-box;
 }
 
 .lyrics-search-input:focus {
@@ -678,23 +751,28 @@
 }
 
 .lyrics-search-actions {
-   display: flex;
+   display: grid;
+   grid-template-columns: 1fr 1fr auto;
+   gap: 4px;
    align-items: center;
-   gap: 6px;
 }
 
 .lyrics-search-provider-btn {
-   flex: 1;
+   height: 30px;
+   padding: 0 4px;
    background: var(--bg-panel);
    border: 1px solid var(--border);
-   border-radius: 6px;
+   border-radius: 4px;
    color: var(--text-mute);
-   font-size: 12px;
+   font-size: 11px;
    font-weight: 600;
    font-family: inherit;
-   padding: 8px 12px;
    cursor: pointer;
    transition: background 0.15s, color 0.15s, border-color 0.15s;
+   white-space: nowrap;
+   overflow: hidden;
+   text-overflow: ellipsis;
+   box-sizing: border-box;
 }
 
 .lyrics-search-provider-btn:hover:not(:disabled) {
@@ -708,15 +786,36 @@
    cursor: not-allowed;
 }
 
+.lyrics-search-close-btn {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 30px;
+   height: 30px;
+   padding: 0;
+   background: var(--bg-panel);
+   border: 1px solid var(--border);
+   border-radius: 4px;
+   color: var(--text-mute);
+   flex-shrink: 0;
+   box-sizing: border-box;
+}
+
+.lyrics-search-close-btn:hover {
+   color: var(--text);
+   background: var(--bg-hover);
+   border-color: var(--accent);
+}
+
 .lyrics-search-results {
    position: absolute;
    bottom: 100%;
-   left: 0;
-   right: 0;
-   margin-bottom: 8px;
+   left: 4px;
+   right: 4px;
+   margin-bottom: 4px;
    background: var(--bg-panel);
    border: 1px solid var(--border);
-   border-radius: 8px;
+   border-radius: 6px;
    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
    max-height: 280px;
    overflow-y: auto;
@@ -749,6 +848,7 @@
    color: var(--text-mute);
    transition: background 0.15s;
    position: relative;
+   box-sizing: border-box;
 }
 
 .lyrics-search-item:last-child {

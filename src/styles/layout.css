@@ -26,6 +26,21 @@
    grid-template-columns: 44px 1fr 44px;
 }
 
+/* Sidebar lebih ramping di layar ≤ 1024px */
+@media (max-width: 1024px) {
+   .body {
+      grid-template-columns: 220px 1fr 220px;
+   }
+
+   .app.sidebar-closed .body {
+      grid-template-columns: 44px 1fr 220px;
+   }
+
+   .app.lyrics-closed .body {
+      grid-template-columns: 220px 1fr 44px;
+   }
+}
+
 @media (max-width: 700px) {
    .app {
       grid-template-rows: 56px 1fr auto;

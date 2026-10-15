@@ -1,18 +1,17 @@
+import { GoogleTranslatorTokenFree } from 'anylang/translators/GoogleTranslator';
+import {
+   basicFetcher,
+   type Fetcher,
+   type FetcherOptions,
+   type FetcherRequestType,
+   type FetcherResponse,
+   type FetcherResponseDataByTypeMap,
+} from 'anylang/utils';
+
 export type TranslationResult = {
    translated: string;
    detectedSource?: string;
 };
-
-const BASE = '/api/gtranslate';
-
-type GTranslateResponse = [
-   // [0] = array of segments
-   Array<[string, string, unknown, unknown, unknown] | null>,
-   // [1] = detected source language
-   string | null,
-   // ...
-   ...unknown[]
-];
 
 /**
  * Deteksi bahasa sumber dari karakter teks.
@@ -27,6 +26,32 @@ function detectSourceLang(text: string): string | null {
    return null;
 }
 
+/**
+ * Custom fetcher — request ke anylang diarahkan ke Vite proxy.
+ */
+const proxyFetcher: Fetcher = <T extends FetcherRequestType>(
+   url: string,
+   options: FetcherOptions<T>
+): Promise<FetcherResponse<FetcherResponseDataByTypeMap[T]>> => {
+   const proxiedUrl = url.replace(
+      /^https?:\/\/translate\.googleapis\.com/,
+      '/api/gtranslate'
+   );
+
+   return basicFetcher(proxiedUrl, options);
+};
+
+let translator: GoogleTranslatorTokenFree | null = null;
+
+function getTranslator(): GoogleTranslatorTokenFree {
+   if (!translator) {
+      translator = new GoogleTranslatorTokenFree({
+         fetcher: proxyFetcher,
+      });
+   }
+   return translator;
+}
+
 export async function translateGoogle(
    text: string,
    targetLang: string = 'id',
@@ -37,39 +62,24 @@ export async function translateGoogle(
 
    const sl = sourceLang ?? detectSourceLang(trimmed) ?? 'auto';
 
-   const params = new URLSearchParams({
-      client: 'gtx',
-      sl,
-      tl: targetLang,
-      dt: 't',
-      q: trimmed,
-   });
+   const result = await getTranslator().translate(trimmed, sl, targetLang);
 
-   const url = `${BASE}/translate_a/single?${params.toString()}`;
+   return { translated: result };
+}
 
-   const res = await fetch(url);
-   if (!res.ok) {
-      throw new Error(`Google Translate HTTP ${res.status}`);
-   }
+export async function translateGoogleBatch(
+   texts: string[],
+   targetLang: string = 'id',
+   sourceLang?: string
+): Promise<string[]> {
+   if (texts.length === 0) return [];
 
-   const data = (await res.json()) as GTranslateResponse;
+   const first = texts.find((t) => t.trim());
+   if (!first) return texts.map(() => '');
 
-   if (!Array.isArray(data) || !Array.isArray(data[0])) {
-      throw new Error('Format response tidak valid');
-   }
+   const sl = sourceLang ?? detectSourceLang(first) ?? 'auto';
 
-   const segments = data[0];
-   const translated = segments
-      .filter((s): s is [string, string, unknown, unknown, unknown] => Array.isArray(s) && s[0] != null)
-      .map((s) => s[0])
-      .join('');
+   const results = await getTranslator().translateBatch(texts, sl, targetLang);
 
-   if (!translated) {
-      throw new Error('Terjemahan kosong');
-   }
-
-   return {
-      translated,
-      detectedSource: typeof data[1] === 'string' ? data[1] : undefined,
-   };
+   return results.map((r) => r ?? '');
 }
