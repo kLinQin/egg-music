@@ -7,6 +7,7 @@ import {
    Repeat,
    Repeat1,
    Volume2,
+   VolumeX,
    Music,
    SlidersHorizontal,
 } from 'lucide-react';
@@ -22,6 +23,7 @@ type Props = {
    currentTime: number;
    duration: number;
    volume: number;
+   isMuted: boolean;
    shuffle: boolean;
    repeat: RepeatMode;
    onToggle: () => void;
@@ -29,6 +31,7 @@ type Props = {
    onNext: () => void;
    onSeek: (t: number) => void;
    onVolume: (v: number) => void;
+   onToggleMute: () => void;
    onToggleShuffle: () => void;
    onCycleRepeat: () => void;
    onOpenEq: () => void;
@@ -42,6 +45,7 @@ export function PlayerBar({
    currentTime,
    duration,
    volume,
+   isMuted,
    shuffle,
    repeat,
    onToggle,
@@ -49,6 +53,7 @@ export function PlayerBar({
    onNext,
    onSeek,
    onVolume,
+   onToggleMute,
    onToggleShuffle,
    onCycleRepeat,
    onOpenEq,
@@ -126,13 +131,23 @@ export function PlayerBar({
             >
                <SlidersHorizontal size={18} />
             </button>
-            <Volume2 size={18} />
+            <button
+               className="btn icon-btn"
+               onClick={onToggleMute}
+               title={isMuted ? 'Unmute' : 'Mute'}
+            >
+               {isMuted || volume === 0 ? (
+                  <VolumeX size={18} />
+               ) : (
+                  <Volume2 size={18} />
+               )}
+            </button>
             <input
                type="range"
                min={0}
                max={1}
                step={0.01}
-               value={volume}
+               value={isMuted ? 0 : volume}
                onChange={(e) => onVolume(Number(e.target.value))}
             />
          </div>

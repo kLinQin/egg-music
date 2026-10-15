@@ -40,7 +40,6 @@ function App() {
   const { tracks, addTracks } = useTracks(currentPlaylistId);
   const p = usePlayer(tracks);
 
-  // Deteksi mobile
   useEffect(() => {
     const onResize = () => {
       const mobile = window.innerWidth <= 700;
@@ -130,6 +129,7 @@ function App() {
         currentTime={p.currentTime}
         duration={p.duration}
         volume={p.volume}
+        isMuted={p.isMuted}
         shuffle={p.shuffle}
         repeat={p.repeat}
         onToggle={p.toggle}
@@ -137,6 +137,7 @@ function App() {
         onNext={p.next}
         onSeek={p.seek}
         onVolume={p.changeVolume}
+        onToggleMute={p.toggleMute}
         onToggleShuffle={p.toggleShuffle}
         onCycleRepeat={p.cycleRepeat}
         onOpenEq={() => setEqOpen(true)}

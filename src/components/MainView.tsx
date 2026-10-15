@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Music, ListMusic, Library } from 'lucide-react';
+import { Music, ListMusic, Library, Lightbulb } from 'lucide-react';
 import type { StoredTrack, Playlist } from '../lib/db';
 import { formatTime, coverToUrl } from '../lib/audio';
 import { LyricsPanel } from './LyricsPanel';
+import { TipsView } from './TipsView';
 
-type Tab = 'playlist' | 'tracks' | 'lyrics';
+type Tab = 'playlist' | 'tracks' | 'lyrics' | 'tips';
 
 type Props = {
    playlist: Playlist | null;
@@ -112,6 +113,22 @@ export function MainView({
    const hasCovers = covers.length > 0;
 
    const renderHeader = () => {
+      // ==== Tips tab: header dengan cover icon ====
+      if (tab === 'tips') {
+         return (
+            <div className="playlist-hero">
+               <div className="playlist-cover">
+                  <Lightbulb size={64} />
+               </div>
+               <div className="playlist-meta">
+                  <span className="playlist-label">Bantuan</span>
+                  <h2 className="playlist-title">Tips &amp; Panduan</h2>
+                  <span className="playlist-stats">Panduan lengkap Egg Music</span>
+               </div>
+            </div>
+         );
+      }
+
       if (!isMobile) {
          if (!playlist) return <div className="playlist-hero" />;
          return (
@@ -245,6 +262,12 @@ export function MainView({
                >
                   Lirik
                </button>
+               <button
+                  className={`main-tab main-tab-tips ${tab === 'tips' ? 'active' : ''}`}
+                  onClick={() => setTab('tips')}
+               >
+                  Tips
+               </button>
             </div>
          </div>
 
@@ -332,6 +355,8 @@ export function MainView({
                isPlaying={isPlaying}
             />
          )}
+
+         {tab === 'tips' && <TipsView />}
       </main>
    );
 }

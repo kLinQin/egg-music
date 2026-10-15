@@ -1,0 +1,375 @@
+/* ===== Tips View ===== */
+
+.tips-view {
+   flex: 1;
+   display: flex;
+   min-height: 0;
+   min-width: 0;
+   width: 100%;
+   background: var(--bg-elev);
+   overflow: hidden;
+}
+
+/* ===== Sidebar (daftar isi) ===== */
+
+.tips-sidebar {
+   width: 200px;
+   flex-shrink: 0;
+   border-right: 1px solid var(--border);
+   overflow-y: auto;
+   padding: 12px 0 32px;
+   scrollbar-width: none;
+   min-width: 0;
+}
+
+.tips-sidebar::-webkit-scrollbar {
+   display: none;
+}
+
+.tips-sidebar-header {
+   padding: 8px 16px;
+   font-size: 11px;
+   font-weight: 700;
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
+   color: var(--text-mute);
+}
+
+.tips-sidebar-list {
+   list-style: none;
+   margin: 0;
+   padding: 0;
+}
+
+.tips-sidebar-item {
+   display: block;
+   width: 100%;
+   background: transparent;
+   border: none;
+   text-align: left;
+   padding: 8px 16px;
+   font-size: 13px;
+   font-family: inherit;
+   color: var(--text-mute);
+   cursor: pointer;
+   border-left: 2px solid transparent;
+   transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.tips-sidebar-item:hover {
+   color: var(--text);
+   background: var(--bg-hover);
+}
+
+.tips-sidebar-item.active {
+   color: var(--accent);
+   border-left-color: var(--accent);
+   background: var(--bg-hover);
+}
+
+/* ===== Content (scroll area) ===== */
+
+.tips-content {
+   flex: 1;
+   overflow-y: auto;
+   padding: 24px 32px 64px;
+   scroll-behavior: smooth;
+   scrollbar-width: none;
+   min-width: 0;
+}
+
+.tips-content::-webkit-scrollbar {
+   display: none;
+}
+
+.tips-content-inner {
+   max-width: 720px;
+   margin: 0 auto;
+}
+
+.tips-section {
+   padding-bottom: 32px;
+   margin-bottom: 32px;
+   border-bottom: 1px solid var(--border);
+   scroll-margin-top: 16px;
+}
+
+.tips-section:last-child {
+   border-bottom: none;
+}
+
+.tips-section-title {
+   font-size: 24px;
+   font-weight: 800;
+   letter-spacing: -0.5px;
+   margin: 0 0 16px;
+   color: var(--text);
+}
+
+.tips-section-body {
+   font-size: 14px;
+   line-height: 1.7;
+   color: var(--text-mute);
+}
+
+/* ===== Typography ===== */
+
+.tips-section-body h2 {
+   font-size: 18px;
+   font-weight: 700;
+   color: var(--text);
+   margin: 24px 0 10px;
+}
+
+.tips-section-body h3 {
+   font-size: 15px;
+   font-weight: 700;
+   color: var(--text);
+   margin: 20px 0 8px;
+   display: flex;
+   align-items: center;
+   gap: 6px;
+}
+
+.tips-section-body h4 {
+   font-size: 14px;
+   font-weight: 700;
+   color: var(--text);
+   margin: 16px 0 6px;
+}
+
+.tips-section-body h5 {
+   font-size: 13px;
+   font-weight: 700;
+   color: var(--text);
+   margin: 12px 0 4px;
+}
+
+.tips-section-body p {
+   margin: 8px 0;
+}
+
+.tips-section-body strong {
+   color: var(--text);
+   font-weight: 600;
+}
+
+.tips-section-body em {
+   font-style: italic;
+   color: var(--text-mute);
+}
+
+.tips-section-body a {
+   color: var(--accent);
+   text-decoration: none;
+}
+
+.tips-section-body a:hover {
+   text-decoration: underline;
+}
+
+.tips-section-body ul,
+.tips-section-body ol {
+   margin: 8px 0;
+   padding-left: 22px;
+}
+
+.tips-section-body li {
+   margin: 4px 0;
+}
+
+.tips-section-body code {
+   background: var(--bg-panel);
+   border: 1px solid var(--border);
+   border-radius: 4px;
+   padding: 1px 6px;
+   font-size: 12px;
+   font-family: 'Menlo', 'Consolas', monospace;
+   color: var(--accent);
+}
+
+.tips-section-body kbd {
+   background: var(--bg-panel);
+   border: 1px solid var(--border);
+   border-bottom-width: 2px;
+   border-radius: 4px;
+   padding: 1px 6px;
+   font-size: 11px;
+   font-family: inherit;
+   font-weight: 600;
+   color: var(--text);
+   display: inline-block;
+   min-width: 20px;
+   text-align: center;
+}
+
+.tips-section-body pre {
+   background: var(--bg-panel);
+   border: 1px solid var(--border);
+   border-radius: 6px;
+   padding: 12px 14px;
+   overflow-x: auto;
+   font-size: 12px;
+   font-family: 'Menlo', 'Consolas', monospace;
+   color: var(--text);
+   margin: 10px 0;
+}
+
+/* ===== Inline icon ===== */
+
+.tips__inline-icon {
+   display: inline-flex;
+   align-items: center;
+   vertical-align: -2px;
+   margin: 0 2px;
+   color: var(--text-mute);
+}
+
+/* ===== Hint box ===== */
+
+.tips__hint {
+   display: flex;
+   align-items: flex-start;
+   gap: 8px;
+   padding: 10px 14px;
+   border-radius: 6px;
+   border: 1px solid var(--border);
+   background: var(--bg-panel);
+   font-size: 13px;
+   margin: 12px 0;
+   color: var(--text-mute);
+}
+
+.tips__hint>svg {
+   flex-shrink: 0;
+   margin-top: 2px;
+}
+
+.tips__hint--info>svg {
+   color: var(--accent);
+}
+
+.tips__hint--warning>svg {
+   color: #f5a623;
+}
+
+.tips__hint--success>svg {
+   color: var(--accent);
+}
+
+.tips__hint--warning {
+   border-color: #5a4520;
+   background: #2a2110;
+}
+
+.tips__hint--success {
+   border-color: #1d4a2a;
+   background: #102a18;
+}
+
+/* ===== Table ===== */
+
+.tips__table {
+   width: 100%;
+   border-collapse: collapse;
+   margin: 12px 0;
+   font-size: 13px;
+}
+
+.tips__table th {
+   text-align: left;
+   padding: 8px 12px;
+   border-bottom: 1px solid var(--border);
+   font-size: 11px;
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
+   color: var(--text-mute);
+   font-weight: 700;
+}
+
+.tips__table td {
+   padding: 8px 12px;
+   border-bottom: 1px solid var(--border);
+   vertical-align: top;
+   color: var(--text-mute);
+}
+
+.tips__table tr:last-child td {
+   border-bottom: none;
+}
+
+.tips__table td:first-child {
+   color: var(--text);
+   white-space: nowrap;
+}
+
+/* ===== Mobile ===== */
+
+@media (max-width: 700px) {
+   .tips-view {
+      flex-direction: column;
+   }
+
+   .tips-sidebar {
+      width: 100%;
+      max-width: 100%;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      padding: 4px;
+      max-height: none;
+      overflow-x: auto;
+      overflow-y: hidden;
+      display: flex;
+      flex-direction: row;
+      scrollbar-width: none;
+   }
+
+   .tips-sidebar::-webkit-scrollbar {
+      display: none;
+   }
+
+   .tips-sidebar-header {
+      display: none;
+   }
+
+   .tips-sidebar-list {
+      display: flex;
+      flex-direction: row;
+      gap: 0;
+   }
+
+   .tips-sidebar-item {
+      flex-shrink: 0;
+      padding: 6px 12px;
+      border-left: none;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      font-size: 12px;
+   }
+
+   .tips-sidebar-item.active {
+      border-left: none;
+      border-bottom-color: var(--accent);
+      background: transparent;
+   }
+
+   .tips-content {
+      padding: 16px 16px 48px;
+   }
+
+   .tips-section-title {
+      font-size: 20px;
+   }
+
+   .tips-section-body {
+      font-size: 13px;
+   }
+
+   .tips-section-body h2 {
+      font-size: 16px;
+   }
+
+   .tips-section-body h3 {
+      font-size: 14px;
+   }
+}

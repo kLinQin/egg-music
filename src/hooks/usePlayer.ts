@@ -17,17 +17,20 @@ export function usePlayer(tracks: StoredTrack[]) {
    const coverUrlRef = useRef<string | null>(null);
    const eqInitializedRef = useRef(false);
    const autoPlayRef = useRef(false);
+   const lastVolumeRef = useRef(1);
 
-   const [currentId, setCurrentId] = useState<string | null>(null);
+   const [playingTrack, setPlayingTrack] = useState<StoredTrack | null>(null);
    const [isPlaying, setIsPlaying] = useState(false);
    const [duration, setDuration] = useState(0);
    const [currentTime, setCurrentTime] = useState(0);
    const [volume, setVolume] = useState(1);
+   const [isMuted, setIsMuted] = useState(false);
    const [shuffle, setShuffle] = useState(false);
    const [repeat, setRepeat] = useState<RepeatMode>('off');
    const [coverUrl, setCoverUrl] = useState<string | null>(null);
 
-   const currentTrack = tracks.find((t) => t.id === currentId) ?? null;
+   const currentId = playingTrack?.id ?? null;
+   const currentTrack = playingTrack;
 
    // Setup EQ sekali saat audio element siap
    useEffect(() => {
@@ -41,12 +44,12 @@ export function usePlayer(tracks: StoredTrack[]) {
       }
    }, []);
 
-   // Load audio saat currentId berubah
+   // Load audio saat playingTrack berubah
    useEffect(() => {
       const audio = audioRef.current;
       if (!audio) return;
 
-      if (!currentTrack) {
+      if (!playingTrack) {
          audio.pause();
          audio.removeAttribute('src');
          if (urlRef.current) {
@@ -57,12 +60,11 @@ export function usePlayer(tracks: StoredTrack[]) {
       }
 
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
-      const url = trackToUrl(currentTrack);
+      const url = trackToUrl(playingTrack);
       urlRef.current = url;
       audio.src = url;
       audio.load();
 
-      // Kalau ini dipicu oleh playTrack (bukan user manual), play setelah siap
       if (autoPlayRef.current) {
          autoPlayRef.current = false;
          const onCanPlay = () => {
@@ -74,7 +76,7 @@ export function usePlayer(tracks: StoredTrack[]) {
          };
          audio.addEventListener('canplay', onCanPlay);
       }
-   }, [currentTrack]);
+   }, [playingTrack]);
 
    // Load cover saat track berubah
    useEffect(() => {
@@ -82,14 +84,14 @@ export function usePlayer(tracks: StoredTrack[]) {
          URL.revokeObjectURL(coverUrlRef.current);
          coverUrlRef.current = null;
       }
-      if (!currentTrack) {
+      if (!playingTrack) {
          setCoverUrl(null);
          return;
       }
-      const url = coverToUrl(currentTrack);
+      const url = coverToUrl(playingTrack);
       coverUrlRef.current = url;
       setCoverUrl(url);
-   }, [currentTrack]);
+   }, [playingTrack]);
 
    useEffect(() => {
       return () => {
@@ -120,22 +122,26 @@ export function usePlayer(tracks: StoredTrack[]) {
       else play();
    }, [isPlaying, play, pause]);
 
-   const playTrack = useCallback((id: string) => {
-      const audio = audioRef.current;
+   const playTrack = useCallback(
+      (id: string) => {
+         const audio = audioRef.current;
+         const target = tracks.find((t) => t.id === id);
+         if (!target) return;
 
-      // Kalau track sama (repeat atau klik ulang), langsung play
-      if (audio && currentTrack?.id === id) {
-         audio.currentTime = 0;
-         resumeEq()
-            .then(() => audio.play())
-            .then(() => setIsPlaying(true))
-            .catch(() => { });
-         return;
-      }
+         if (audio && playingTrack?.id === id) {
+            audio.currentTime = 0;
+            resumeEq()
+               .then(() => audio.play())
+               .then(() => setIsPlaying(true))
+               .catch(() => { });
+            return;
+         }
 
-      autoPlayRef.current = true;
-      setCurrentId(id);
-   }, [currentTrack]);
+         autoPlayRef.current = true;
+         setPlayingTrack(target);
+      },
+      [tracks, playingTrack]
+   );
 
    const pickNextId = useCallback(
       (dir: 1 | -1): string | null => {
@@ -147,6 +153,7 @@ export function usePlayer(tracks: StoredTrack[]) {
             return tracks[idx].id;
          }
          const idx = tracks.findIndex((t) => t.id === currentId);
+         if (idx === -1) return tracks[0].id;
          const nextIdx = (idx + dir + tracks.length) % tracks.length;
          return tracks[nextIdx].id;
       },
@@ -173,9 +180,34 @@ export function usePlayer(tracks: StoredTrack[]) {
    const changeVolume = useCallback((v: number) => {
       const audio = audioRef.current;
       if (!audio) return;
+      // Geser slider → unmute otomatis
+      if (isMuted && v > 0) {
+         setIsMuted(false);
+         lastVolumeRef.current = v;
+      }
+      if (v > 0) lastVolumeRef.current = v;
       audio.volume = v;
       setVolume(v);
-   }, []);
+   }, [isMuted]);
+
+   const toggleMute = useCallback(() => {
+      const audio = audioRef.current;
+      if (!audio) return;
+
+      if (isMuted) {
+         // Unmute → balik ke volume terakhir (atau 1 kalau 0)
+         const restored = lastVolumeRef.current > 0 ? lastVolumeRef.current : 1;
+         audio.volume = restored;
+         setVolume(restored);
+         setIsMuted(false);
+      } else {
+         // Mute → simpan volume sekarang
+         lastVolumeRef.current = volume > 0 ? volume : 1;
+         audio.volume = 0;
+         setVolume(0);
+         setIsMuted(true);
+      }
+   }, [isMuted, volume]);
 
    const toggleShuffle = useCallback(() => setShuffle((s) => !s), []);
 
@@ -198,7 +230,12 @@ export function usePlayer(tracks: StoredTrack[]) {
             audio.play().catch(() => { });
             return;
          }
-         const isLast = tracks.length > 0 && tracks[tracks.length - 1].id === currentId;
+         const idx = tracks.findIndex((t) => t.id === currentId);
+         if (repeat === 'off' && idx === -1) {
+            setIsPlaying(false);
+            return;
+         }
+         const isLast = idx === tracks.length - 1;
          if (repeat === 'off' && isLast && !shuffle) {
             setIsPlaying(false);
             return;
@@ -223,9 +260,12 @@ export function usePlayer(tracks: StoredTrack[]) {
       };
    }, [next, repeat, shuffle, tracks, currentId]);
 
+   // Sinkronkan volume ke audio element saat state berubah
    useEffect(() => {
-      if (audioRef.current) audioRef.current.volume = volume;
-   }, [volume]);
+      if (audioRef.current) {
+         audioRef.current.volume = isMuted ? 0 : volume;
+      }
+   }, [volume, isMuted]);
 
    // ==== Media Session: setup handlers sekali ====
    useEffect(() => {
@@ -292,6 +332,7 @@ export function usePlayer(tracks: StoredTrack[]) {
       duration,
       currentTime,
       volume,
+      isMuted,
       shuffle,
       repeat,
       coverUrl,
@@ -303,6 +344,7 @@ export function usePlayer(tracks: StoredTrack[]) {
       prev,
       seek,
       changeVolume,
+      toggleMute,
       toggleShuffle,
       cycleRepeat,
    };

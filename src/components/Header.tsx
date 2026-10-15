@@ -21,7 +21,7 @@ export function Header({ onAddFiles, onAddFolder, importProgress }: Props) {
          )}
 
          <div className="header-actions">
-            <button className="btn" onClick={onAddFolder} title="Tambah Folder">
+            <button className="btn primary" onClick={onAddFolder} title="Tambah Folder">
                <FolderPlus size={16} />
                <span className="btn-label">Tambah Folder</span>
             </button>
