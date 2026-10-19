@@ -35,6 +35,18 @@ export type ManualLyrics = {
    updatedAt: number;
 };
 
+export type PendingTrack = {
+   key: string;
+   name: string;
+   title: string;
+   artist: string;
+   album: string;
+   duration: number;
+   playlistName: string;
+   manualLyrics: string;
+   updatedAt: number;
+};
+
 interface MusicDB extends DBSchema {
    tracks: {
       key: string;
@@ -50,10 +62,14 @@ interface MusicDB extends DBSchema {
       key: string;
       value: ManualLyrics;
    };
+   pendingTracks: {
+      key: string;
+      value: PendingTrack;
+   };
 }
 
 const DB_NAME = 'music-player';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 let dbPromise: Promise<IDBPDatabase<MusicDB>> | null = null;
 
@@ -91,6 +107,10 @@ function getDB() {
 
             if (oldVersion < 4) {
                db.createObjectStore('manualLyrics', { keyPath: 'trackId' });
+            }
+
+            if (oldVersion < 5) {
+               db.createObjectStore('pendingTracks', { keyPath: 'key' });
             }
          },
       });
@@ -267,6 +287,33 @@ export async function deleteManualLyrics(trackId: string): Promise<void> {
    await db.delete('manualLyrics', trackId);
 }
 
+// ==================== PENDING TRACKS ====================
+
+export function pendingKey(name: string, title: string, artist: string): string {
+   return `${name.trim()}|${title.trim()}|${artist.trim()}`;
+}
+
+export async function getAllPendingTracks(): Promise<PendingTrack[]> {
+   const db = await getDB();
+   const list = await db.getAll('pendingTracks');
+   return list.sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+export async function addPendingTrack(track: PendingTrack): Promise<void> {
+   const db = await getDB();
+   await db.put('pendingTracks', track);
+}
+
+export async function deletePendingTrack(key: string): Promise<void> {
+   const db = await getDB();
+   await db.delete('pendingTracks', key);
+}
+
+export async function clearPendingTracks(): Promise<void> {
+   const db = await getDB();
+   await db.clear('pendingTracks');
+}
+
 // ==================== IMPORT FOLDER ====================
 
 export type FolderImportResult = {
@@ -309,10 +356,14 @@ export async function importFolder(
 
 export async function resetAllData(): Promise<void> {
    const db = await getDB();
-   const tx = db.transaction(['tracks', 'playlists', 'manualLyrics'], 'readwrite');
+   const tx = db.transaction(
+      ['tracks', 'playlists', 'manualLyrics', 'pendingTracks'],
+      'readwrite'
+   );
    await tx.objectStore('tracks').clear();
    await tx.objectStore('playlists').clear();
    await tx.objectStore('manualLyrics').clear();
+   await tx.objectStore('pendingTracks').clear();
    await tx.done;
    await db.put('playlists', {
       id: LIBRARY_ID,
@@ -320,4 +371,304 @@ export async function resetAllData(): Promise<void> {
       createdAt: Date.now(),
       isSystem: true,
    });
+}
+
+// ==================== BACKUP / RESTORE ====================
+
+export type BackupSettings = {
+   eq?: { presetIndex: number | null; gains: number[] | null };
+   lyricsProvider?: string | null;
+};
+
+export type BackupPlaylist = {
+   name: string;
+   createdAt: number;
+};
+
+export type BackupPendingTrack = {
+   name: string;
+   title: string;
+   artist: string;
+   album: string;
+   duration: number;
+   playlistName: string;
+   manualLyrics: string;
+};
+
+export type BackupFile = {
+   version: 1 | 2 | 3;
+   exportedAt: string;
+   settings?: BackupSettings;
+   playlists?: BackupPlaylist[];
+   tracks?: unknown[];
+   manualLyrics?: unknown[];
+   eq?: { presetIndex: number | null; gains: number[] | null };
+   lyricsPrefs?: { provider: string | null; choices: unknown[] };
+   pendingTracks?: BackupPendingTrack[];
+};
+
+const LS_PROVIDER = 'lyrics-provider';
+const LS_EQ_PRESET_INDEX = 'eq-preset-index';
+const LS_EQ_GAINS = 'eq-gains';
+
+function readLocalJson<T>(key: string): T | null {
+   try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      return JSON.parse(raw) as T;
+   } catch {
+      return null;
+   }
+}
+
+function writeLocal(key: string, value: unknown): void {
+   try {
+      localStorage.setItem(
+         key,
+         typeof value === 'string' ? value : JSON.stringify(value)
+      );
+   } catch {
+      // ignore
+   }
+}
+
+function readEqState(): { presetIndex: number | null; gains: number[] | null } {
+   const presetRaw = localStorage.getItem(LS_EQ_PRESET_INDEX);
+   let presetIndex: number | null = null;
+   if (presetRaw !== null) {
+      const n = Number(presetRaw);
+      if (Number.isInteger(n)) presetIndex = n;
+   }
+   const gains = readLocalJson<number[]>(LS_EQ_GAINS);
+   return {
+      presetIndex,
+      gains: Array.isArray(gains) ? gains : null,
+   };
+}
+
+function readLyricsProvider(): string | null {
+   try {
+      return localStorage.getItem(LS_PROVIDER);
+   } catch {
+      return null;
+   }
+}
+
+export async function exportData(): Promise<BackupFile> {
+   const db = await getDB();
+   const playlists = await db.getAll('playlists');
+   const tracks = await db.getAll('tracks');
+   const manualLyrics = await db.getAll('manualLyrics');
+   const pendingTracksRaw = await db.getAll('pendingTracks');
+
+   const playlistNameById = new Map<string, string>();
+   for (const p of playlists) playlistNameById.set(p.id, p.name);
+
+   const lyricsByTrackId = new Map<string, string>();
+   for (const ml of manualLyrics) lyricsByTrackId.set(ml.trackId, ml.text);
+
+   // Pending track yang sudah ada di store pendingTracks
+   const pendingMap = new Map<string, BackupPendingTrack>();
+   for (const pt of pendingTracksRaw) {
+      pendingMap.set(pt.key, {
+         name: pt.name,
+         title: pt.title,
+         artist: pt.artist,
+         album: pt.album,
+         duration: pt.duration,
+         playlistName: pt.playlistName,
+         manualLyrics: pt.manualLyrics,
+      });
+   }
+
+   // Track yang sudah ada audio → jadikan pending metadata (untuk restore ke device lain)
+   for (const t of tracks) {
+      const name = t.name;
+      const title = t.title ?? '';
+      const artist = t.artist ?? '';
+      const key = pendingKey(name, title, artist);
+      if (pendingMap.has(key)) continue;
+      pendingMap.set(key, {
+         name,
+         title,
+         artist,
+         album: t.album ?? '',
+         duration: t.duration ?? 0,
+         playlistName: playlistNameById.get(t.playlistId) ?? 'Library',
+         manualLyrics: lyricsByTrackId.get(t.id) ?? '',
+      });
+   }
+
+   const pendingTracks = Array.from(pendingMap.values());
+
+   const backupPlaylists: BackupPlaylist[] = playlists
+      .filter((p) => !p.isSystem)
+      .map((p) => ({ name: p.name, createdAt: p.createdAt }));
+
+   return {
+      version: 3,
+      exportedAt: new Date().toISOString(),
+      settings: {
+         eq: readEqState(),
+         lyricsProvider: readLyricsProvider(),
+      },
+      playlists: backupPlaylists,
+      pendingTracks,
+   };
+}
+
+export type ImportResult = {
+   addedPlaylists: number;
+   skippedPlaylists: number;
+   addedPendingTracks: number;
+   skippedPendingTracks: number;
+   restoredEq: boolean;
+   restoredLyricsPrefs: boolean;
+   legacyIgnored: boolean;
+};
+
+function isValidBackup(obj: unknown): obj is BackupFile {
+   if (!obj || typeof obj !== 'object') return false;
+   const o = obj as Record<string, unknown>;
+   if (o.version !== 1 && o.version !== 2 && o.version !== 3) return false;
+   return true;
+}
+
+function restoreEqState(
+   eq: { presetIndex: number | null; gains: number[] | null } | undefined
+): boolean {
+   if (!eq) return false;
+   let restored = false;
+   if (eq.presetIndex !== null && Number.isInteger(eq.presetIndex)) {
+      writeLocal(LS_EQ_PRESET_INDEX, String(eq.presetIndex));
+      restored = true;
+   }
+   if (Array.isArray(eq.gains) && eq.gains.every((v) => typeof v === 'number')) {
+      writeLocal(LS_EQ_GAINS, JSON.stringify(eq.gains));
+      restored = true;
+   }
+   return restored;
+}
+
+function restoreLyricsProvider(provider: string | null | undefined): boolean {
+   if (typeof provider !== 'string') return false;
+   writeLocal(LS_PROVIDER, provider);
+   return true;
+}
+
+export async function importData(raw: unknown): Promise<ImportResult> {
+   if (!isValidBackup(raw)) {
+      throw new Error('File backup tidak valid.');
+   }
+
+   const db = await getDB();
+
+   const existingPlaylists = await db.getAll('playlists');
+   const existingPlaylistNames = new Set(
+      existingPlaylists.map((p) => p.name.toLowerCase())
+   );
+
+   const existingPendingKeys = new Set(
+      (await db.getAllKeys('pendingTracks')) as string[]
+   );
+
+   let addedPlaylists = 0;
+   let skippedPlaylists = 0;
+   let addedPendingTracks = 0;
+   let skippedPendingTracks = 0;
+
+   // ==== Playlist ====
+   const playlistSource: BackupPlaylist[] = Array.isArray(raw.playlists)
+      ? raw.playlists
+         .filter(
+            (p): p is BackupPlaylist =>
+               !!p && typeof p.name === 'string' && p.name.trim().length > 0
+         )
+         .map((p) => ({
+            name: p.name,
+            createdAt:
+               typeof p.createdAt === 'number' ? p.createdAt : Date.now(),
+         }))
+      : [];
+
+   const tx = db.transaction(['playlists', 'pendingTracks'], 'readwrite');
+   const playlistStore = tx.objectStore('playlists');
+   const pendingStore = tx.objectStore('pendingTracks');
+
+   for (const pl of playlistSource) {
+      const lower = pl.name.toLowerCase();
+      if (lower === 'library' || existingPlaylistNames.has(lower)) {
+         skippedPlaylists++;
+         continue;
+      }
+      const newPlaylist: Playlist = {
+         id: crypto.randomUUID(),
+         name: pl.name,
+         createdAt: pl.createdAt,
+         isSystem: false,
+      };
+      await playlistStore.put(newPlaylist);
+      existingPlaylistNames.add(lower);
+      addedPlaylists++;
+   }
+
+   // ==== Pending tracks ====
+   if (Array.isArray(raw.pendingTracks)) {
+      for (const pt of raw.pendingTracks) {
+         if (!pt || typeof pt.name !== 'string') {
+            skippedPendingTracks++;
+            continue;
+         }
+         const name = pt.name.trim();
+         const title = typeof pt.title === 'string' ? pt.title.trim() : '';
+         const artist = typeof pt.artist === 'string' ? pt.artist.trim() : '';
+         if (!name) {
+            skippedPendingTracks++;
+            continue;
+         }
+         const key = pendingKey(name, title, artist);
+         if (existingPendingKeys.has(key)) {
+            skippedPendingTracks++;
+            continue;
+         }
+         const pending: PendingTrack = {
+            key,
+            name,
+            title,
+            artist,
+            album: typeof pt.album === 'string' ? pt.album : '',
+            duration: typeof pt.duration === 'number' ? pt.duration : 0,
+            playlistName:
+               typeof pt.playlistName === 'string' ? pt.playlistName : 'Library',
+            manualLyrics:
+               typeof pt.manualLyrics === 'string' ? pt.manualLyrics : '',
+            updatedAt: Date.now(),
+         };
+         await pendingStore.put(pending);
+         existingPendingKeys.add(key);
+         addedPendingTracks++;
+      }
+   }
+
+   await tx.done;
+
+   // ==== Settings ====
+   const eqSource = raw.settings?.eq ?? raw.eq;
+   const providerSource =
+      raw.settings?.lyricsProvider ?? raw.lyricsPrefs?.provider ?? null;
+
+   const restoredEq = restoreEqState(eqSource);
+   const restoredLyricsPrefs = restoreLyricsProvider(providerSource);
+
+   const legacyIgnored = raw.version !== 3;
+
+   return {
+      addedPlaylists,
+      skippedPlaylists,
+      addedPendingTracks,
+      skippedPendingTracks,
+      restoredEq,
+      restoredLyricsPrefs,
+      legacyIgnored,
+   };
 }

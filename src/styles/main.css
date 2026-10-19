@@ -969,3 +969,66 @@
    text-overflow: ellipsis;
    white-space: nowrap;
 }
+
+/* ===== Manual lyrics — tombol Backup + dropdown ===== */
+
+.manual-lyrics-backup {
+   position: relative;
+   display: inline-flex;
+}
+
+.manual-lyrics-backup .manual-lyrics-link {
+   cursor: pointer;
+   font-family: inherit;
+}
+
+.manual-lyrics-backup .manual-lyrics-link:disabled {
+   opacity: 0.4;
+   cursor: not-allowed;
+}
+
+.manual-lyrics-backup-dropdown {
+   position: absolute;
+   top: 100%;
+   right: 0;
+   left: auto;
+   margin-top: 4px;
+   min-width: 220px;
+   max-width: calc(100vw - 24px);
+   max-height: 260px;
+   overflow-y: auto;
+   background: var(--bg-panel);
+   border: 1px solid var(--border);
+   border-radius: 6px;
+   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+   z-index: 10;
+   display: flex;
+   flex-direction: column;
+}
+
+.manual-lyrics-backup-item {
+   display: block;
+   width: 100%;
+   padding: 8px 12px;
+   background: transparent;
+   border: none;
+   border-bottom: 1px solid var(--border);
+   color: var(--text-mute);
+   text-align: left;
+   font-family: inherit;
+   font-size: 12px;
+   cursor: pointer;
+   white-space: nowrap;
+   overflow: hidden;
+   text-overflow: ellipsis;
+   transition: background 0.15s, color 0.15s;
+}
+
+.manual-lyrics-backup-item:last-child {
+   border-bottom: none;
+}
+
+.manual-lyrics-backup-item:hover {
+   background: var(--bg-hover);
+   color: var(--text);
+}

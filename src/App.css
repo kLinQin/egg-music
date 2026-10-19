@@ -13,4 +13,6 @@
 @import './styles/controls.css';
 @import './styles/modal.css';
 @import './styles/eq-modal.css';
+@import './styles/settings-modal.css';
+@import './styles/backup-json-modal.css';
 @import './styles/responsive.css';

@@ -61,6 +61,19 @@ export function usePlayer(tracks: StoredTrack[]) {
 
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
       const url = trackToUrl(playingTrack);
+
+      if (!url) {
+         // Track tanpa audio (mis. hasil import) — jangan pasang src
+         urlRef.current = null;
+         audio.pause();
+         audio.removeAttribute('src');
+         autoPlayRef.current = false;
+         setIsPlaying(false);
+         setDuration(0);
+         setCurrentTime(0);
+         return;
+      }
+
       urlRef.current = url;
       audio.src = url;
       audio.load();
@@ -127,6 +140,9 @@ export function usePlayer(tracks: StoredTrack[]) {
          const audio = audioRef.current;
          const target = tracks.find((t) => t.id === id);
          if (!target) return;
+
+         // Track tanpa audio — tidak bisa diputar
+         if (!target.data || target.data.byteLength === 0) return;
 
          if (audio && playingTrack?.id === id) {
             audio.currentTime = 0;

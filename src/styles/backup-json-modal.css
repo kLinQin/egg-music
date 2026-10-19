@@ -1,0 +1,71 @@
+/* ===== Backup JSON modal ===== */
+
+.backup-json-modal {
+   max-width: 640px;
+   height: 90vh;
+}
+
+.backup-json-body {
+   display: flex;
+   flex-direction: column;
+   gap: 10px;
+   padding: 16px;
+   overflow: hidden;
+}
+
+.backup-json-textarea {
+   flex: 1;
+   min-height: 0;
+   width: 100%;
+   background: var(--bg-panel);
+   color: var(--text);
+   border: 1px solid var(--border);
+   border-radius: 6px;
+   padding: 10px 12px;
+   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+   font-size: 12px;
+   line-height: 1.5;
+   resize: none;
+   outline: none;
+   box-sizing: border-box;
+}
+
+.backup-json-textarea:focus {
+   border-color: var(--accent);
+}
+
+.backup-json-actions {
+   justify-content: space-between;
+}
+
+.backup-json-actions-right {
+   display: flex;
+   gap: 8px;
+   margin-left: auto;
+}
+
+.settings-inline-actions {
+   display: flex;
+   gap: 8px;
+   flex-wrap: wrap;
+}
+
+@media (max-width: 700px) {
+   .modal-backdrop-backup {
+      padding: 0;
+      align-items: stretch;
+   }
+
+   .backup-json-modal {
+      max-width: none;
+      height: 100%;
+      max-height: none;
+      border-radius: 0;
+      border: none;
+      margin: 0;
+   }
+
+   .backup-json-body {
+      padding: 8px;
+   }
+}

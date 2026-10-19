@@ -1,16 +1,16 @@
-import { Plus, FolderPlus, Trash2 } from 'lucide-react';
+import { Plus, FolderPlus, Settings } from 'lucide-react';
 
 type Props = {
    onAddFiles: () => void;
    onAddFolder: () => void;
-   onClearStorage: () => void;
+   onOpenSettings: () => void;
    importProgress: { done: number; total: number } | null;
 };
 
 export function Header({
    onAddFiles,
    onAddFolder,
-   onClearStorage,
+   onOpenSettings,
    importProgress,
 }: Props) {
    return (
@@ -27,17 +27,6 @@ export function Header({
          )}
 
          <div className="header-actions">
-            <button
-               className="btn primary"
-               onClick={onClearStorage}
-               title="Hapus Storage"
-            >
-               <Trash2 size={16} />
-               <span className="btn-label">
-                  <span className="btn-label-verb">Hapus </span>
-                  <span className="btn-label-noun">Storage</span>
-               </span>
-            </button>
             <button className="btn primary" onClick={onAddFolder} title="Tambah Folder">
                <FolderPlus size={16} />
                <span className="btn-label">
@@ -51,6 +40,10 @@ export function Header({
                   <span className="btn-label-verb">Tambah </span>
                   <span className="btn-label-noun">Lagu</span>
                </span>
+            </button>
+            <button className="btn primary" onClick={onOpenSettings} title="Settings">
+               <Settings size={16} />
+               <span className="btn-label">Settings</span>
             </button>
          </div>
       </header>

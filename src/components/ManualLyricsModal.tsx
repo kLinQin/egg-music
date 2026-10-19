@@ -1,9 +1,15 @@
-import { useEffect, useRef } from 'react';
-import { ExternalLink, Upload } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ExternalLink, Upload, Database } from 'lucide-react';
 
 type SearchLink = {
    label: string;
    url: string;
+};
+
+export type PendingLyricOption = {
+   key: string;
+   label: string;
+   text: string;
 };
 
 type Props = {
@@ -11,6 +17,7 @@ type Props = {
    initialText: string;
    hasManual: boolean;
    searchLinks: SearchLink[];
+   pendingLyrics: PendingLyricOption[];
    onChange: (text: string) => void;
    onSave: () => void;
    onDelete: () => void;
@@ -22,21 +29,43 @@ export function ManualLyricsModal({
    initialText,
    hasManual,
    searchLinks,
+   pendingLyrics,
    onChange,
    onSave,
    onDelete,
    onClose,
 }: Props) {
    const fileInputRef = useRef<HTMLInputElement>(null);
+   const [dropdownOpen, setDropdownOpen] = useState(false);
+   const dropdownRef = useRef<HTMLDivElement>(null);
 
    useEffect(() => {
       if (!open) return;
       const onKey = (e: KeyboardEvent) => {
-         if (e.key === 'Escape') onClose();
+         if (e.key === 'Escape') {
+            if (dropdownOpen) setDropdownOpen(false);
+            else onClose();
+         }
       };
       window.addEventListener('keydown', onKey);
       return () => window.removeEventListener('keydown', onKey);
-   }, [open, onClose]);
+   }, [open, onClose, dropdownOpen]);
+
+   useEffect(() => {
+      if (!dropdownOpen) return;
+      const onClick = (e: MouseEvent) => {
+         const target = e.target as HTMLElement;
+         if (!target.closest('.manual-lyrics-backup')) {
+            setDropdownOpen(false);
+         }
+      };
+      document.addEventListener('mousedown', onClick);
+      return () => document.removeEventListener('mousedown', onClick);
+   }, [dropdownOpen]);
+
+   useEffect(() => {
+      if (!open) setDropdownOpen(false);
+   }, [open]);
 
    if (!open) return null;
 
@@ -53,8 +82,15 @@ export function ManualLyricsModal({
       }
    };
 
+   const applyPending = (text: string) => {
+      onChange(text);
+      setDropdownOpen(false);
+   };
+
+   const hasPending = pendingLyrics.length > 0;
+
    return (
-      <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-backdrop modal-backdrop-manual" onClick={onClose}>
          <div
             className="modal manual-lyrics-modal"
             onClick={(e) => e.stopPropagation()}
@@ -78,6 +114,38 @@ export function ManualLyricsModal({
                         <ExternalLink size={12} />
                      </a>
                   ))}
+
+                  <div className="manual-lyrics-backup" ref={dropdownRef}>
+                     <button
+                        className="manual-lyrics-link"
+                        onClick={() => setDropdownOpen((v) => !v)}
+                        disabled={!hasPending}
+                        title={
+                           hasPending
+                              ? 'Lirik dari backup'
+                              : 'Tidak ada lirik dari backup'
+                        }
+                        type="button"
+                     >
+                        <Database size={12} />
+                        <span>Backup</span>
+                     </button>
+
+                     {dropdownOpen && hasPending && (
+                        <div className="manual-lyrics-backup-dropdown">
+                           {pendingLyrics.map((opt) => (
+                              <button
+                                 key={opt.key}
+                                 className="manual-lyrics-backup-item"
+                                 onClick={() => applyPending(opt.text)}
+                                 type="button"
+                              >
+                                 {opt.label}
+                              </button>
+                           ))}
+                        </div>
+                     )}
+                  </div>
                </div>
 
                <textarea

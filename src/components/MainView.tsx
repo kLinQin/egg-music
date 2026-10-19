@@ -127,7 +127,6 @@ export function MainView({
    };
 
    const renderHeader = () => {
-      // ==== Tips tab: header dengan cover icon ====
       if (tab === 'tips') {
          return (
             <div className="playlist-hero">

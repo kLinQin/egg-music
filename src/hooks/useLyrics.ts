@@ -70,19 +70,20 @@ function clearChoice(trackId: string) {
    }
 }
 
-function loadProvider(): LyricsProvider {
+function loadProvider(): LyricsProvider | null {
    try {
       const raw = localStorage.getItem(LS_PROVIDER);
       if (raw === 'lrclib' || raw === 'lyricsovh' || raw === 'manual') return raw;
    } catch {
       // ignore
    }
-   return 'lrclib';
+   return null;
 }
 
-function saveProvider(p: LyricsProvider) {
+function saveProvider(p: LyricsProvider | null) {
    try {
-      localStorage.setItem(LS_PROVIDER, p);
+      if (p === null) localStorage.removeItem(LS_PROVIDER);
+      else localStorage.setItem(LS_PROVIDER, p);
    } catch {
       // ignore
    }
@@ -95,7 +96,6 @@ function errorMessage(err: unknown): string {
    return 'Gagal memuat lirik';
 }
 
-// ===== Parser LRC inline (hanya untuk lirik manual) =====
 function parseManualText(text: string): LyricsResult {
    const trimmed = text.trim();
    const lrcRegex = /\[(\d{2}):(\d{2})(?:[.:](\d{2,3}))?\](.*)/;
@@ -135,7 +135,7 @@ export function useLyrics(track: StoredTrack | null) {
       manual: false,
    });
 
-   const [provider, setProviderState] = useState<LyricsProvider>(loadProvider);
+   const [provider, setProviderState] = useState<LyricsProvider | null>(loadProvider);
    const [hasManual, setHasManual] = useState(false);
 
    const cacheRef = useRef(memoryCache);
@@ -147,12 +147,11 @@ export function useLyrics(track: StoredTrack | null) {
       []
    );
 
-   const setProvider = useCallback((p: LyricsProvider) => {
+   const setProvider = useCallback((p: LyricsProvider | null) => {
       saveProvider(p);
       setProviderState(p);
    }, []);
 
-   // ==== Manual LRCLIB (by id) ====
    const pickManual = useCallback(
       async (choice: { id: number; trackName: string; artistName: string }) => {
          if (!track) return;
@@ -182,7 +181,6 @@ export function useLyrics(track: StoredTrack | null) {
       [track, applyResult]
    );
 
-   // ==== Manual lyrics.ovh (by artist + title) ====
    const pickManualOvh = useCallback(
       async (artist: string, title: string) => {
          if (!track) return;
@@ -212,7 +210,6 @@ export function useLyrics(track: StoredTrack | null) {
       [track, applyResult]
    );
 
-   // ==== Simpan lirik manual (paste/ketik) ====
    const saveManualText = useCallback(
       async (text: string) => {
          if (!track) return;
@@ -232,15 +229,15 @@ export function useLyrics(track: StoredTrack | null) {
       [track, applyResult]
    );
 
-   // ==== Hapus lirik manual ====
    const deleteManualText = useCallback(async () => {
       if (!track) return;
       await deleteManualLyrics(track.id);
       cacheRef.current.delete(`manualText:${track.id}`);
       setHasManual(false);
-      saveProvider('lrclib');
-      setProviderState('lrclib');
-      setState({ loading: true, result: null, error: null, manual: false });
+      // Kembali ke "belum dipilih" supaya user pilih sumber lagi
+      saveProvider(null);
+      setProviderState(null);
+      setState({ loading: false, result: null, error: null, manual: false });
    }, [track]);
 
    const resetToAuto = useCallback(() => {
@@ -323,13 +320,19 @@ export function useLyrics(track: StoredTrack | null) {
             return;
          }
 
-         // ==== Prioritas 3: provider manual (tapi belum ada teks) ====
+         // ==== Prioritas 3: provider belum dipilih → jangan fetch ====
+         if (provider === null) {
+            setState({ loading: false, result: null, error: null, manual: false });
+            return;
+         }
+
+         // ==== Prioritas 4: provider manual (belum ada teks) ====
          if (provider === 'manual') {
             setState({ loading: false, result: null, error: null, manual: false });
             return;
          }
 
-         // ==== Prioritas 4: provider otomatis ====
+         // ==== Prioritas 5: provider otomatis ====
          const title = track.title || track.name.replace(/\.[^.]+$/, '');
          const artist = track.artist || '';
 

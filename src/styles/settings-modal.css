@@ -1,0 +1,83 @@
+/* ===== Settings modal ===== */
+
+.settings-modal {
+   max-width: 480px;
+}
+
+.settings-body {
+   display: flex;
+   flex-direction: column;
+   gap: 16px;
+}
+
+.settings-section {
+   display: flex;
+   flex-direction: column;
+   gap: 6px;
+}
+
+.settings-section-title {
+   margin: 0;
+   font-size: 13px;
+   font-weight: 700;
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
+   color: var(--text);
+}
+
+.settings-section-desc {
+   margin: 0 0 4px;
+   font-size: 12px;
+   line-height: 1.5;
+   color: var(--text-mute);
+}
+
+.settings-section .btn {
+   align-self: flex-start;
+}
+
+.settings-section-danger {
+   border-top: 1px solid var(--border);
+   padding-top: 12px;
+}
+
+.settings-error {
+   padding: 10px 12px;
+   border-radius: 6px;
+   background: rgba(229, 57, 53, 0.15);
+   border: 1px solid rgba(229, 57, 53, 0.4);
+   color: #ff8a80;
+   font-size: 13px;
+}
+
+.settings-success {
+   padding: 10px 12px;
+   border-radius: 6px;
+   background: rgba(29, 185, 84, 0.12);
+   border: 1px solid rgba(29, 185, 84, 0.4);
+   color: var(--text);
+   font-size: 13px;
+   line-height: 1.5;
+}
+
+.settings-success-actions {
+   display: flex;
+   gap: 8px;
+   margin-top: 8px;
+}
+
+@media (max-width: 700px) {
+   .settings-modal {
+      max-width: none;
+      height: auto;
+      max-height: 90vh;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      margin: 20px;
+   }
+
+   .modal-backdrop-settings {
+      align-items: center;
+      padding: 20px;
+   }
+}

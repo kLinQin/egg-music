@@ -1,6 +1,7 @@
 import type { StoredTrack } from './db';
 
-export function trackToUrl(track: StoredTrack): string {
+export function trackToUrl(track: StoredTrack): string | null {
+   if (!track.data || track.data.byteLength === 0) return null;
    const blob = new Blob([track.data], { type: track.type });
    return URL.createObjectURL(blob);
 }

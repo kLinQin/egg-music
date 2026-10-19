@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Search, X, Music, FileText, Brain, Pencil } from 'lucide-react';
 import type { StoredTrack } from '../lib/db';
+import { getAllPendingTracks } from '../lib/db';
 import { useLyrics, type LyricsProvider } from '../hooks/useLyrics';
 import {
    useTranslatedLyrics,
@@ -8,7 +9,7 @@ import {
 } from '../hooks/useTranslatedLyrics';
 import { searchLyrics, type LyricsSearchItem } from '../lib/lyrics';
 import { formatTime } from '../lib/audio';
-import { ManualLyricsModal } from './ManualLyricsModal';
+import { ManualLyricsModal, type PendingLyricOption } from './ManualLyricsModal';
 
 export type LyricsMode = 'plain' | 'id' | 'en';
 
@@ -72,9 +73,11 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
    const [translateProvider, setTranslateProvider] =
       useState<TranslateProvider>('google');
    const [popup, setPopup] = useState<'lyrics' | 'translate' | null>(null);
+   const [autoPopupDismissed, setAutoPopupDismissed] = useState(false);
 
    const [manualModalOpen, setManualModalOpen] = useState(false);
    const [manualText, setManualText] = useState('');
+   const [pendingLyrics, setPendingLyrics] = useState<PendingLyricOption[]>([]);
 
    const lines = result?.lines ?? [];
    const synced = result?.synced ?? false;
@@ -98,6 +101,8 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
    const translationError =
       showTranslation && !translation.loading && translation.error;
 
+   const providerChosen = provider !== null;
+
    let activeIndex = -1;
    if (synced && lines.length > 0) {
       for (let i = lines.length - 1; i >= 0; i--) {
@@ -108,6 +113,15 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
       }
    }
 
+   // Auto-buka popup sumber saat provider belum dipilih
+   useEffect(() => {
+      if (!track) return;
+      if (providerChosen) return;
+      if (autoPopupDismissed) return;
+      if (popup !== null) return;
+      setPopup('lyrics');
+   }, [track, providerChosen, autoPopupDismissed, popup]);
+
    useEffect(() => {
       if (!synced || activeIndex < 0) return;
       const el = activeLineRef.current;
@@ -115,17 +129,46 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
    }, [activeIndex, synced]);
 
+   // Close popup saat klik di luar
    useEffect(() => {
       if (!popup) return;
       const onClick = (e: MouseEvent) => {
          const target = e.target as HTMLElement;
          if (!target.closest('.lyrics-bottom-bar')) {
             setPopup(null);
+            // Kalau belum pilih provider dan popup ditutup manual → jangan auto buka lagi
+            if (!providerChosen) setAutoPopupDismissed(true);
          }
       };
       document.addEventListener('mousedown', onClick);
       return () => document.removeEventListener('mousedown', onClick);
-   }, [popup]);
+   }, [popup, providerChosen]);
+
+   // Reset autoPopupDismissed saat track berubah
+   useEffect(() => {
+      setAutoPopupDismissed(false);
+   }, [track?.id]);
+
+   const loadPendingLyrics = async () => {
+      try {
+         const list = await getAllPendingTracks();
+         const options: PendingLyricOption[] = list
+            .filter((p) => p.manualLyrics.trim().length > 0)
+            .map((p) => {
+               const label = p.title || p.name;
+               const sub = p.artist ? ` — ${p.artist}` : '';
+               return {
+                  key: p.key,
+                  label: `${label}${sub}`,
+                  text: p.manualLyrics,
+               };
+            });
+         setPendingLyrics(options);
+      } catch (err) {
+         console.warn('[lyrics] gagal load pending lirik:', err);
+         setPendingLyrics([]);
+      }
+   };
 
    const buildQuery = () =>
       [searchArtist.trim(), searchTitle.trim()].filter(Boolean).join(' ');
@@ -178,11 +221,13 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
    };
 
    const chooseLyricsProvider = (p: LyricsProvider) => {
+      setAutoPopupDismissed(true);
       if (p === 'manual') {
          setProvider('manual');
          setPopup(null);
          if (!hasManual) {
             setManualText('');
+            loadPendingLyrics();
             setManualModalOpen(true);
          }
          return;
@@ -199,6 +244,7 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
    const openManualModal = () => {
       setProvider('manual');
       setManualText(result?.plain ?? lines.map((l) => l.text).join('\n'));
+      loadPendingLyrics();
       setManualModalOpen(true);
       setSearchOpen(false);
       setPopup(null);
@@ -233,13 +279,19 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
             </div>
          )}
 
-         {track && !loading && !result && (
+         {track && !providerChosen && (
+            <div className="lyrics-view-placeholder">
+               Pilih sumber lirik terlebih dahulu
+            </div>
+         )}
+
+         {track && providerChosen && !loading && !result && (
             <div className="lyrics-view-placeholder">
                {error || (provider === 'manual' ? 'Belum ada lirik manual untuk lagu ini' : 'Lirik tidak tersedia')}
             </div>
          )}
 
-         {track && !loading && result && (
+         {track && providerChosen && !loading && result && (
             <div className={`lyrics-content ${synced ? 'synced' : 'plain'}`}>
                {lines.map((line, i) => {
                   const isActive = synced && i === activeIndex;
@@ -262,13 +314,13 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
             </div>
          )}
 
-         {!isPlaying && synced && activeIndex < 0 && track && !loading && result && !translation.error && (
+         {!isPlaying && synced && activeIndex < 0 && track && providerChosen && !loading && result && !translation.error && (
             <div className="lyrics-hint">Tekan play untuk sinkronisasi</div>
          )}
       </>
    );
 
-   const overlay = showOverlay && track ? (
+   const overlay = showOverlay && track && providerChosen ? (
       <div className="lyrics-overlay">
          <div className="lyrics-overlay-spinner" />
          <div className="lyrics-overlay-text">{overlayText}</div>
@@ -336,6 +388,11 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
                            <span className="lyrics-btn-spinner" />
                            <span className="lyrics-btn-label">Memuat...</span>
                         </>
+                     ) : !providerChosen ? (
+                        <>
+                           <Music size={14} />
+                           <span className="lyrics-btn-label">Pilih sumber</span>
+                        </>
                      ) : (
                         <>
                            {provider === 'lrclib' ? (
@@ -359,7 +416,7 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
                   <button
                      className={`lyrics-bottom-btn lyrics-bottom-btn--middle ${popup === 'translate' ? 'open' : ''}`}
                      onClick={() => showTranslation && setPopup((p) => (p === 'translate' ? null : 'translate'))}
-                     disabled={!showTranslation || translating}
+                     disabled={!showTranslation || translating || !providerChosen}
                      title="Sumber terjemahan"
                   >
                      {translating ? (
@@ -394,6 +451,7 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
                         className="lyrics-bottom-btn lyrics-bottom-btn--right"
                         onClick={openSearch}
                         title="Cari lirik manual"
+                        disabled={!providerChosen}
                      >
                         <Search size={16} />
                      </button>
@@ -491,6 +549,7 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
          initialText={manualText}
          hasManual={hasManual}
          searchLinks={searchLinks}
+         pendingLyrics={pendingLyrics}
          onChange={setManualText}
          onSave={submitManual}
          onDelete={removeManual}
