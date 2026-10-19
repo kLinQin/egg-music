@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Music, ListMusic, Library, Lightbulb, Pencil, Trash2 } from 'lucide-react';
+import {
+   Music,
+   ListMusic,
+   Library,
+   Lightbulb,
+   Pencil,
+   Trash2,
+} from 'lucide-react';
 import type { StoredTrack, Playlist } from '../lib/db';
 import { formatTime, coverToUrl } from '../lib/audio';
 import { LyricsPanel } from './LyricsPanel';
@@ -15,6 +22,7 @@ type Props = {
    isPlaying: boolean;
    currentTime: number;
    onPlay: (id: string) => void;
+   onDeleteTrack: (id: string) => void;
    isMobile: boolean;
    playlists: Playlist[];
    onSelectPlaylist: (id: string) => void;
@@ -90,6 +98,7 @@ export function MainView({
    isPlaying,
    currentTime,
    onPlay,
+   onDeleteTrack,
    isMobile,
    playlists,
    onSelectPlaylist,
@@ -100,7 +109,8 @@ export function MainView({
    const [tab, setTab] = useState<Tab>('tracks');
    const [editingPlaylistId, setEditingPlaylistId] = useState<string | null>(null);
    const [editPlaylistName, setEditPlaylistName] = useState('');
-   const [pendingDelete, setPendingDelete] = useState<Playlist | null>(null);
+   const [pendingDeletePlaylist, setPendingDeletePlaylist] = useState<Playlist | null>(null);
+   const [pendingDeleteTrack, setPendingDeleteTrack] = useState<StoredTrack | null>(null);
    const currentTrack = tracks.find((t) => t.id === currentId) ?? null;
    const currentTrackCover = useTrackCover(currentTrack);
 
@@ -337,7 +347,7 @@ export function MainView({
                                  className="btn icon-sm"
                                  onClick={(e) => {
                                     e.stopPropagation();
-                                    setPendingDelete(pl);
+                                    setPendingDeletePlaylist(pl);
                                  }}
                                  title="Hapus"
                               >
@@ -364,6 +374,7 @@ export function MainView({
                   <span className="col-bitrate">Bitrate</span>
                   <span className="col-size">Ukuran</span>
                   <span className="col-duration">Durasi</span>
+                  <span className="col-action" />
                </div>
 
                {tracks.map((t, i) => {
@@ -393,6 +404,18 @@ export function MainView({
                         <span className="col-duration">
                            {t.duration ? formatTime(t.duration) : '—'}
                         </span>
+                        <span className="col-action">
+                           <button
+                              className="btn icon-sm track-delete-btn"
+                              onClick={(e) => {
+                                 e.stopPropagation();
+                                 setPendingDeleteTrack(t);
+                              }}
+                              title="Hapus lagu"
+                           >
+                              <Trash2 size={12} />
+                           </button>
+                        </span>
                      </div>
                   );
                })}
@@ -416,15 +439,27 @@ export function MainView({
          {tab === 'tips' && <TipsView />}
 
          <ConfirmDialog
-            open={pendingDelete !== null}
+            open={pendingDeletePlaylist !== null}
             title="Hapus Playlist"
-            message={`Hapus playlist "${pendingDelete?.name ?? ''}"? Lagu akan dipindah ke Library.`}
+            message={`Hapus playlist "${pendingDeletePlaylist?.name ?? ''}"? Lagu akan dipindah ke Library.`}
             confirmLabel="Hapus"
             onConfirm={() => {
-               if (pendingDelete) onDeletePlaylist(pendingDelete.id);
-               setPendingDelete(null);
+               if (pendingDeletePlaylist) onDeletePlaylist(pendingDeletePlaylist.id);
+               setPendingDeletePlaylist(null);
             }}
-            onCancel={() => setPendingDelete(null)}
+            onCancel={() => setPendingDeletePlaylist(null)}
+         />
+
+         <ConfirmDialog
+            open={pendingDeleteTrack !== null}
+            title="Hapus Lagu"
+            message={`Hapus lagu "${pendingDeleteTrack?.title || pendingDeleteTrack?.name || ''}" dari library? Lirik manual lagu ini juga akan terhapus.`}
+            confirmLabel="Hapus"
+            onConfirm={() => {
+               if (pendingDeleteTrack) onDeleteTrack(pendingDeleteTrack.id);
+               setPendingDeleteTrack(null);
+            }}
+            onCancel={() => setPendingDeleteTrack(null)}
          />
       </main>
    );

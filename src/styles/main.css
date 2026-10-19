@@ -159,7 +159,6 @@
    border-bottom-color: var(--accent);
 }
 
-/* Hide tab "Playlist" & "Lirik" di PC */
 @media (min-width: 701px) {
 
    .main-tab-playlist,
@@ -224,7 +223,6 @@
    font-weight: 500;
 }
 
-/* Tombol rename/hapus di item playlist mobile — selalu tampil */
 .mobile-playlist-item .playlist-actions {
    display: flex;
    gap: 2px;
@@ -265,7 +263,7 @@
    position: relative;
    z-index: 1;
    display: grid;
-   grid-template-columns: 32px minmax(160px, 3fr) minmax(120px, 2fr) 56px 80px 70px 60px;
+   grid-template-columns: 32px minmax(160px, 3fr) minmax(120px, 2fr) 56px 80px 70px 60px 32px;
    align-items: center;
    gap: 12px;
    padding: 6px 24px;
@@ -367,6 +365,27 @@
    font-variant-numeric: tabular-nums;
 }
 
+.col-action {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+}
+
+.track-delete-btn {
+   opacity: 0;
+   transition: opacity 0.15s, color 0.15s, background 0.15s;
+   color: var(--text-mute);
+}
+
+.track-row:hover .track-delete-btn {
+   opacity: 1;
+}
+
+.track-delete-btn:hover {
+   color: #e53935;
+   background: var(--bg-active);
+}
+
 .row-index {
    font-size: 13px;
 }
@@ -448,8 +467,6 @@
    padding: 40px 0;
 }
 
-/* ===== Lyrics overlay ===== */
-
 .lyrics-overlay {
    position: absolute;
    inset: 0;
@@ -482,8 +499,6 @@
    font-size: 13px;
    color: var(--text-mute);
 }
-
-/* ===== Lyrics mode switcher ===== */
 
 .lyrics-mode-switcher {
    display: inline-flex;
@@ -519,8 +534,6 @@
 .lyrics-mode-btn.active:hover {
    background: var(--accent-hover);
 }
-
-/* ===== Lyrics content ===== */
 
 .lyrics-content {
    max-width: 640px;
@@ -601,8 +614,6 @@
    text-align: center;
 }
 
-/* ===== Lyrics bottom bar ===== */
-
 .lyrics-bottom-bar {
    position: absolute;
    bottom: 0;
@@ -625,8 +636,6 @@
    align-items: center;
    box-sizing: border-box;
 }
-
-/* ===== Bottom bar buttons ===== */
 
 .lyrics-bottom-btn {
    display: flex;
@@ -673,8 +682,6 @@
    text-overflow: ellipsis;
    white-space: nowrap;
 }
-
-/* ===== Popup di atas bottom bar ===== */
 
 .lyrics-popup {
    position: absolute;
@@ -736,8 +743,6 @@
    color: var(--accent);
    font-weight: 700;
 }
-
-/* ===== Lyrics search panel ===== */
 
 .lyrics-search-panel {
    display: flex;
@@ -929,8 +934,6 @@
    color: var(--text-mute);
 }
 
-/* ===== Manual lyrics textarea (dipakai di ManualLyricsModal) ===== */
-
 .lyrics-manual-textarea {
    flex: 1;
    min-height: 200px;
@@ -951,8 +954,6 @@
 .lyrics-manual-textarea:focus {
    border-color: var(--accent);
 }
-
-/* ===== Spinner kecil di tombol lyrics ===== */
 
 .lyrics-btn-spinner {
    width: 12px;
@@ -1031,4 +1032,28 @@
 .manual-lyrics-backup-item:hover {
    background: var(--bg-hover);
    color: var(--text);
+}
+
+/* ===== Tombol hapus track (di daftar lagu) ===== */
+
+.track-delete-btn {
+   opacity: 0;
+   transition: opacity 0.15s, color 0.15s, background 0.15s;
+   color: var(--text-mute);
+}
+
+.track-row:hover .track-delete-btn {
+   opacity: 1;
+}
+
+.track-delete-btn:hover {
+   color: #e53935;
+   background: var(--bg-active);
+}
+
+/* Mobile: tombol hapus selalu tampil */
+@media (max-width: 700px) {
+   .track-delete-btn {
+      opacity: 1;
+   }
 }

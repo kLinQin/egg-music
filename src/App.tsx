@@ -39,7 +39,7 @@ function App() {
     refresh: refreshPlaylists,
   } = usePlaylists();
 
-  const { tracks, addTracks } = useTracks(currentPlaylistId);
+  const { tracks, addTracks, removeTrack } = useTracks(currentPlaylistId);
   const p = usePlayer(tracks);
 
   useEffect(() => {
@@ -77,6 +77,12 @@ function App() {
     }
   };
 
+  const handleDeleteTrack = async (id: string) => {
+    const wasPlaying = p.currentId === id;
+    await removeTrack(id);
+    if (wasPlaying) p.stop();
+  };
+
   return (
     <div
       className={`app ${sidebarOpen ? '' : 'sidebar-closed'} ${lyricsOpen ? '' : 'lyrics-closed'}`}
@@ -108,6 +114,7 @@ function App() {
           isPlaying={p.isPlaying}
           currentTime={p.currentTime}
           onPlay={p.playTrack}
+          onDeleteTrack={handleDeleteTrack}
           isMobile={isMobile}
           playlists={playlists}
           onSelectPlaylist={setCurrentPlaylistId}

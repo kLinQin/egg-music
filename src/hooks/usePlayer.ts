@@ -63,7 +63,6 @@ export function usePlayer(tracks: StoredTrack[]) {
       const url = trackToUrl(playingTrack);
 
       if (!url) {
-         // Track tanpa audio (mis. hasil import) — jangan pasang src
          urlRef.current = null;
          audio.pause();
          audio.removeAttribute('src');
@@ -128,6 +127,20 @@ export function usePlayer(tracks: StoredTrack[]) {
    const pause = useCallback(() => {
       audioRef.current?.pause();
       setIsPlaying(false);
+   }, []);
+
+   const stop = useCallback(() => {
+      const audio = audioRef.current;
+      if (audio) {
+         audio.pause();
+         audio.removeAttribute('src');
+         audio.load();
+      }
+      autoPlayRef.current = false;
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setDuration(0);
+      setPlayingTrack(null);
    }, []);
 
    const toggle = useCallback(() => {
@@ -196,7 +209,6 @@ export function usePlayer(tracks: StoredTrack[]) {
    const changeVolume = useCallback((v: number) => {
       const audio = audioRef.current;
       if (!audio) return;
-      // Geser slider → unmute otomatis
       if (isMuted && v > 0) {
          setIsMuted(false);
          lastVolumeRef.current = v;
@@ -211,13 +223,11 @@ export function usePlayer(tracks: StoredTrack[]) {
       if (!audio) return;
 
       if (isMuted) {
-         // Unmute → balik ke volume terakhir (atau 1 kalau 0)
          const restored = lastVolumeRef.current > 0 ? lastVolumeRef.current : 1;
          audio.volume = restored;
          setVolume(restored);
          setIsMuted(false);
       } else {
-         // Mute → simpan volume sekarang
          lastVolumeRef.current = volume > 0 ? volume : 1;
          audio.volume = 0;
          setVolume(0);
@@ -276,14 +286,12 @@ export function usePlayer(tracks: StoredTrack[]) {
       };
    }, [next, repeat, shuffle, tracks, currentId]);
 
-   // Sinkronkan volume ke audio element saat state berubah
    useEffect(() => {
       if (audioRef.current) {
          audioRef.current.volume = isMuted ? 0 : volume;
       }
    }, [volume, isMuted]);
 
-   // ==== Media Session: setup handlers sekali ====
    useEffect(() => {
       setupHandlers({
          onPlay: () => {
@@ -318,7 +326,6 @@ export function usePlayer(tracks: StoredTrack[]) {
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, []);
 
-   // ==== Media Session: update metadata saat track berubah ====
    useEffect(() => {
       if (!currentTrack) return;
       updateMetadata({
@@ -329,12 +336,10 @@ export function usePlayer(tracks: StoredTrack[]) {
       });
    }, [currentTrack, coverUrl]);
 
-   // ==== Media Session: update playback state ====
    useEffect(() => {
       updatePlaybackState(isPlaying ? 'playing' : 'paused');
    }, [isPlaying]);
 
-   // ==== Media Session: update position state ====
    useEffect(() => {
       if (!duration) return;
       updatePositionState(duration, currentTime);
@@ -354,6 +359,7 @@ export function usePlayer(tracks: StoredTrack[]) {
       coverUrl,
       play,
       pause,
+      stop,
       toggle,
       playTrack,
       next,
