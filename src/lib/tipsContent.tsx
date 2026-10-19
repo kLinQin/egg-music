@@ -19,6 +19,11 @@ import {
    Info,
    AlertTriangle,
    CheckCircle2,
+   Download,
+   Upload,
+   Database,
+   FileJson,
+   Pencil,
 } from 'lucide-react';
 
 export type TipsSection = {
@@ -86,11 +91,19 @@ export const TIPS_SECTIONS: TipsSection[] = [
                </li>
                <li>
                   <strong>Equalizer 8-band</strong> — atur bass, mid, treble dengan
-                  preset siap pakai.
+                  preset siap pakai. Setelan tersimpan otomatis.
                </li>
                <li>
                   <strong>Lirik otomatis</strong> — cari lirik dari LRCLIB atau
                   lyrics.ovh, lengkap dengan terjemahan.
+               </li>
+               <li>
+                  <strong>Lirik manual</strong> — tempel/ketik sendiri, upload file
+                  .txt/.lrc, atau ambil dari backup.
+               </li>
+               <li>
+                  <strong>Backup &amp; Restore</strong> — export/import JSON untuk
+                  pengaturan, playlist, dan metadata lagu.
                </li>
                <li>
                   <strong>Metadata lengkap</strong> — judul, artist, album, cover,
@@ -172,6 +185,13 @@ export const TIPS_SECTIONS: TipsSection[] = [
                durasi) otomatis dibaca dari file. Proses ini butuh waktu beberapa
                detik untuk folder besar.
             </Hint>
+
+            <Hint variant="warning">
+               Track hasil <strong>restore backup JSON</strong> tidak memiliki file
+               audio — masuk ke daftar <em>pending</em>. Track pending tidak muncul
+               di daftar lagu dan hanya dipakai untuk menyimpan metadata &amp; lirik.
+               Untuk memutar, import ulang file audio aslinya.
+            </Hint>
          </>
       ),
    },
@@ -204,6 +224,10 @@ export const TIPS_SECTIONS: TipsSection[] = [
             <ul>
                <li>Hover playlist di sidebar → klik ikon pencil.</li>
                <li>Ketik nama baru, tekan Enter.</li>
+               <li>
+                  Di mobile: buka tab <strong>Playlist</strong> → tombol pencil
+                  muncul di setiap item.
+               </li>
             </ul>
 
             <h3>Hapus playlist</h3>
@@ -351,9 +375,7 @@ export const TIPS_SECTIONS: TipsSection[] = [
             </p>
 
             <h3>8-band EQ</h3>
-            <p>
-               Setiap band mengatur frekuensi berbeda:
-            </p>
+            <p>Setiap band mengatur frekuensi berbeda:</p>
             <ul>
                <li>
                   <strong>60 Hz</strong> — bass dalam (kick drum).
@@ -402,11 +424,30 @@ export const TIPS_SECTIONS: TipsSection[] = [
                <li>
                   <strong>Electronic</strong> — bass + treble ekstrem.
                </li>
+               <li>
+                  <strong>Custom</strong> — muncul otomatis kalau Anda geser slider
+                  manual (tidak cocok preset mana pun).
+               </li>
             </ul>
+
+            <h3>Setelan tersimpan</h3>
+            <p>
+               Setiap perubahan (pilih preset atau geser slider) langsung disimpan
+               di browser. Refresh halaman → setelan EQ tetap seperti terakhir.
+               Setelan juga ikut ke dalam backup JSON (lihat section{' '}
+               <strong>Backup &amp; Restore</strong>).
+            </p>
+
+            <h3>Mobile</h3>
+            <p>
+               Di mobile, modal EQ tampil sebagai kartu di tengah — layout sama
+               dengan desktop. Untuk tampilan lebih lega, putar HP ke{' '}
+               <strong>landscape</strong>; pesan pengingat muncul saat portrait.
+            </p>
 
             <Hint variant="warning">
                Boost band terlalu tinggi bisa bikin suara pecah (clipping). Kalau
-               terjadi, turunkan gain atau reset ke Flat.
+               terjadi, turunkan gain atau pilih preset <strong>Flat</strong>.
             </Hint>
          </>
       ),
@@ -425,6 +466,13 @@ export const TIPS_SECTIONS: TipsSection[] = [
                baris aktif akan di-highlight dan auto-scroll.
             </p>
 
+            <Hint variant="info">
+               Saat pertama kali membuka tab <strong>Lirik</strong>, Egg Music
+               menampilkan pesan <em>"Pilih sumber lirik terlebih dahulu"</em> dan
+               membuka pilihan sumber secara otomatis. Pilih salah satu untuk mulai
+               memuat lirik. Pilihan ini diingat untuk track berikutnya.
+            </Hint>
+
             <h3>Sumber lirik</h3>
             <ul>
                <li>
@@ -434,8 +482,39 @@ export const TIPS_SECTIONS: TipsSection[] = [
                <li>
                   <strong>lyrics.ovh</strong> — plain text saja, tapi katalog luas.
                </li>
+               <li>
+                  <strong>Manual</strong> — tempel/ketik lirik sendiri, upload file,
+                  atau ambil dari backup.
+               </li>
             </ul>
-            <p>Klik tombol provider di toolbar lirik untuk ganti sumber.</p>
+            <p>Klik tombol sumber di toolbar lirik untuk ganti.</p>
+
+            <h3>
+               <InlineIcon>
+                  <Pencil size={14} />
+               </InlineIcon>{' '}
+               Lirik manual
+            </h3>
+            <p>Pilih sumber <strong>Manual</strong> untuk membuka editor lirik:</p>
+            <ul>
+               <li>
+                  <strong>Tempel / ketik</strong> lirik di textarea. Format{' '}
+                  <code>[mm:ss.xx]</code> (LRC) didukung otomatis — kalau ada
+                  timestamp, lirik jadi sinkron; kalau tidak, tampil plain.
+               </li>
+               <li>
+                  <strong>Upload file</strong> <code>.txt</code> atau{' '}
+                  <code>.lrc</code> — isi file langsung masuk textarea.
+               </li>
+               <li>
+                  <strong>Cari lirik</strong> — link ke Lyricsify &amp; LRCLIB
+                  terbuka di tab baru, copy manual, paste ke textarea.
+               </li>
+               <li>
+                  <strong>Backup</strong> — ambil lirik dari track pending (hasil
+                  restore backup JSON) lewat dropdown, masuk ke textarea.
+               </li>
+            </ul>
 
             <h3>Terjemahan</h3>
             <p>Klik tombol mode:</p>
@@ -450,6 +529,10 @@ export const TIPS_SECTIONS: TipsSection[] = [
                   <strong>Inggris</strong> — terjemahan Inggris.
                </li>
             </ul>
+            <p>
+               Terjemahan juga berlaku untuk lirik manual — selama baris liriknya
+               ada, translate bekerja.
+            </p>
 
             <h3>Provider terjemahan</h3>
             <ul>
@@ -486,7 +569,115 @@ export const TIPS_SECTIONS: TipsSection[] = [
       ),
    },
 
-   /* ===================== 8. Mobile ===================== */
+   /* ===================== 8. Backup & Restore ===================== */
+   {
+      id: 'backup',
+      title: 'Backup & Restore',
+      content: (
+         <>
+            <h2>Backup &amp; Restore</h2>
+            <p>
+               Buka ikon{' '}
+               <InlineIcon>
+                  <SlidersHorizontal size={14} />
+               </InlineIcon>{' '}
+               (<strong>Settings</strong>) di header untuk mengakses fitur backup.
+               Tiga pilihan:
+            </p>
+            <ul>
+               <li>
+                  <InlineIcon>
+                     <Download size={14} />
+                  </InlineIcon>{' '}
+                  <strong>Export JSON</strong> — unduh file backup.
+               </li>
+               <li>
+                  <InlineIcon>
+                     <Upload size={14} />
+                  </InlineIcon>{' '}
+                  <strong>Import JSON</strong> — unggah file backup.
+               </li>
+               <li>
+                  <InlineIcon>
+                     <FileJson size={14} />
+                  </InlineIcon>{' '}
+                  <strong>Export / Import (Text)</strong> — salin/tempel JSON
+                  langsung di dalam aplikasi.
+               </li>
+            </ul>
+
+            <h3>Yang di-backup</h3>
+            <ul>
+               <li>
+                  <strong>Pengaturan</strong> — EQ (preset + gain per band) dan
+                  preferensi provider lirik.
+               </li>
+               <li>
+                  <strong>Playlist</strong> — nama dan tanggal dibuat (bukan isi
+                  lagu).
+               </li>
+               <li>
+                  <strong>Metadata lagu</strong> — nama file, judul, artist, album,
+                  durasi, nama playlist asal.
+               </li>
+               <li>
+                  <strong>Lirik manual</strong> — teks lirik yang pernah Anda
+                  tempel/ketik.
+               </li>
+            </ul>
+
+            <h3>Yang TIDAK di-backup</h3>
+            <ul>
+               <li>
+                  <strong>File audio</strong> — terlalu besar untuk JSON. File asli
+                  tetap di komputer Anda.
+               </li>
+               <li>
+                  <strong>Cover art</strong> — sama, ukuran gambar bisa besar.
+               </li>
+               <li>
+                  <strong>Cache lirik</strong> — bisa di-fetch ulang kapan saja.
+               </li>
+            </ul>
+
+            <h3>Setelah import</h3>
+            <ul>
+               <li>
+                  Playlist baru dibuat <strong>berdasarkan nama</strong>. Kalau nama
+                  sudah ada, dilewati (tidak duplikat).
+               </li>
+               <li>
+                  Metadata lagu masuk ke daftar <strong>pending</strong> — tidak
+                  muncul di daftar lagu, tapi bisa dipakai untuk memuat lirik manual
+                  (lewat tombol <strong>Backup</strong> di modal lirik).
+               </li>
+               <li>
+                  EQ &amp; preferensi lirik langsung dipulihkan.
+               </li>
+               <li>
+                  Setelah import, klik <strong>Reload Sekarang</strong> untuk
+                  memuat ulang aplikasi.
+               </li>
+            </ul>
+
+            <Hint variant="info">
+               Backup ini cocok untuk memindahkan struktur library (playlist, lirik,
+               pengaturan) ke device lain. File audio tetap perlu di-import ulang
+               dari sumber aslinya.
+            </Hint>
+
+            <h3>Hapus Storage</h3>
+            <p>
+               Tombol <strong>Hapus Storage</strong> di Settings menghapus{' '}
+               <strong>semua</strong> data lokal: lagu, playlist, lirik manual,
+               pending metadata, dan cache. Ada dialog konfirmasi sebelum eksekusi.
+               Tindakan ini tidak bisa dibatalkan.
+            </p>
+         </>
+      ),
+   },
+
+   /* ===================== 9. Mobile ===================== */
    {
       id: 'mobile',
       title: 'Mobile',
@@ -510,18 +701,38 @@ export const TIPS_SECTIONS: TipsSection[] = [
                   Sidebar playlist <strong>tidak muncul</strong> — digantikan tab
                   "Playlist" di main view.
                </li>
+               <li>
+                  Tombol header hanya menampilkan kata benda (Folder, Lagu,
+                  Settings) — kata kerja "Tambah" disembunyikan.
+               </li>
+               <li>
+                  Modal (EQ, Settings, Lirik Manual, Backup) tampil sebagai kartu di
+                  tengah — bukan fullscreen.
+               </li>
+            </ul>
+
+            <h3>Equalizer di mobile</h3>
+            <ul>
+               <li>Layout tabel EQ sama dengan desktop.</li>
+               <li>
+                  Portrait: muncul pesan pengingat untuk putar HP ke landscape.
+               </li>
+               <li>
+                  Landscape: tampilan lebih lega, tidak perlu scroll horizontal.
+               </li>
             </ul>
 
             <h3>Import musik di mobile</h3>
             <ul>
-               <li>Tap tombol "Tambah Folder" / "Tambah Lagu" di header.</li>
+               <li>Tap tombol "Folder" / "Lagu" di header.</li>
                <li>File picker HP akan terbuka.</li>
             </ul>
 
             <h3>Background play</h3>
             <p>
                Pakai <strong>Media Session API</strong> — musik tetap main walau
-               pindah app atau layar mati. Kontrol muncul di notification / lockscreen.
+               pindah app atau layar mati. Kontrol muncul di notification /
+               lockscreen.
             </p>
 
             <Hint variant="info">
@@ -532,7 +743,7 @@ export const TIPS_SECTIONS: TipsSection[] = [
       ),
    },
 
-   /* ===================== 9. Keyboard Shortcuts ===================== */
+   /* ===================== 10. Keyboard Shortcuts ===================== */
    {
       id: 'shortcuts',
       title: 'Keyboard Shortcuts',
@@ -571,13 +782,13 @@ export const TIPS_SECTIONS: TipsSection[] = [
       ),
    },
 
-   /* ===================== 10. Troubleshooting ===================== */
+   /* ===================== 11. Troubleshooting ===================== */
    {
       id: 'troubleshooting',
       title: 'Troubleshooting',
       content: (
          <>
-            <h2>Masalah umum & solusinya</h2>
+            <h2>Masalah umum &amp; solusinya</h2>
 
             <h3>
                <InlineIcon>
@@ -603,11 +814,12 @@ export const TIPS_SECTIONS: TipsSection[] = [
             </h3>
             <p>
                <strong>Penyebab:</strong> lagu tidak ada di database LRCLIB /
-               lyrics.ovh.
+               lyrics.ovh, atau sumber lirik belum dipilih.
             </p>
             <p>
-               <strong>Solusi:</strong> coba cari manual (ikon search) dengan artist
-               + judul yang benar. Atau ganti provider.
+               <strong>Solusi:</strong> pilih sumber lirik dulu, atau coba cari
+               manual (ikon search) dengan artist + judul yang benar. Bisa juga
+               tempel lirik manual lewat sumber <strong>Manual</strong>.
             </p>
 
             <h3>
@@ -638,11 +850,28 @@ export const TIPS_SECTIONS: TipsSection[] = [
                <strong>Solusi:</strong> import ulang folder. File asli Anda tetap
                aman di komputer.
             </p>
+
+            <h3>
+               <InlineIcon>
+                  <Bug size={14} />
+               </InlineIcon>{' '}
+               "Audio belum di-import" / track dari restore tidak bisa diputar
+            </h3>
+            <p>
+               <strong>Penyebab:</strong> track hasil import backup JSON tidak
+               memiliki file audio (backup hanya metadata).
+            </p>
+            <p>
+               <strong>Solusi:</strong> import ulang file audio aslinya lewat
+               tombol <strong>Lagu</strong> atau <strong>Folder</strong>. Metadata
+               &amp; lirik manual yang tersimpan bisa dimuat lewat tombol{' '}
+               <strong>Backup</strong> di modal lirik manual.
+            </p>
          </>
       ),
    },
 
-   /* ===================== 11. FAQ ===================== */
+   /* ===================== 12. FAQ ===================== */
    {
       id: 'faq',
       title: 'FAQ',
@@ -657,8 +886,8 @@ export const TIPS_SECTIONS: TipsSection[] = [
                Apakah file musik saya di-upload ke server?
             </h3>
             <p>
-               <strong>Tidak.</strong> Semua file disimpan di IndexedDB browser Anda.
-               Tidak ada upload ke server mana pun.
+               <strong>Tidak.</strong> Semua file disimpan di IndexedDB browser
+               Anda. Tidak ada upload ke server mana pun.
             </p>
 
             <h3>
@@ -674,21 +903,24 @@ export const TIPS_SECTIONS: TipsSection[] = [
 
             <h3>
                <InlineIcon>
-                  <HelpCircle size={14} />
+                  <Database size={14} />
                </InlineIcon>{' '}
                Bisakah buka di device lain?
             </h3>
             <p>
-               <strong>Tidak otomatis.</strong> File di device A tidak sync ke
-               device B. Untuk pindah, export folder asli atau import ulang di
-               device baru.
+               <strong>File audio tidak sync otomatis.</strong> Tapi struktur
+               library (playlist, metadata, lirik manual, EQ, preferensi) bisa
+               dipindah lewat{' '}
+               <strong>Settings → Export JSON</strong> di device lama, lalu{' '}
+               <strong>Import JSON</strong> di device baru. File audio tetap perlu
+               di-import ulang dari sumber aslinya.
             </p>
 
             <h3>
                <InlineIcon>
                   <HelpCircle size={14} />
                </InlineIcon>{' '}
-               Lirik transalte pakai API apa?
+               Lirik translate pakai API apa?
             </h3>
             <p>
                <strong>Google Translate</strong> (via endpoint gratis) dan{' '}
@@ -697,18 +929,34 @@ export const TIPS_SECTIONS: TipsSection[] = [
 
             <h3>
                <InlineIcon>
-                  <HelpCircle size={14} />
+                  <SlidersHorizontal size={14} />
                </InlineIcon>{' '}
                Equalizer disimpan?
             </h3>
             <p>
-               Setelan EQ disimpan selama sesi. Refresh browser = reset ke Flat.
+               <strong>Ya.</strong> Setelan EQ (preset + gain per band) disimpan
+               otomatis di browser. Refresh halaman → setelan tetap. Setelan juga
+               ikut ke dalam backup JSON.
+            </p>
+
+            <h3>
+               <InlineIcon>
+                  <HelpCircle size={14} />
+               </InlineIcon>{' '}
+               Lirik manual hilang setelah restore?
+            </h3>
+            <p>
+               <strong>Tidak</strong>, selama file backup dibuat setelah lirik
+               manual disimpan. Lirik manual ikut di dalam backup JSON dan
+               tersimpan di daftar <em>pending</em> setelah import. Untuk
+               menerapkannya ke track, buka modal lirik manual → tombol{' '}
+               <strong>Backup</strong> → pilih lirik.
             </p>
          </>
       ),
    },
 
-   /* ===================== 12. Tentang ===================== */
+   /* ===================== 13. Tentang ===================== */
    {
       id: 'about',
       title: 'Tentang',
@@ -717,8 +965,8 @@ export const TIPS_SECTIONS: TipsSection[] = [
             <h2>Tentang Egg Music</h2>
             <p>
                <strong>Egg Music</strong> adalah music player lokal berbasis browser
-               — dibuat untuk memutar musik pribadi tanpa perlu server atau langganan
-               streaming.
+               — dibuat untuk memutar musik pribadi tanpa perlu server atau
+               langganan streaming.
             </p>
 
             <h3>
@@ -731,10 +979,12 @@ export const TIPS_SECTIONS: TipsSection[] = [
                <li>Import folder rekursif dengan metadata otomatis</li>
                <li>Playlist multi-list dengan toggle sidebar</li>
                <li>Player lengkap (play/pause/next/prev/seek/volume/mute)</li>
-               <li>Shuffle & repeat (off / all / one)</li>
-               <li>Equalizer 8-band dengan 6 preset</li>
+               <li>Shuffle &amp; repeat (off / all / one)</li>
+               <li>Equalizer 8-band dengan 6 preset + Custom, tersimpan otomatis</li>
                <li>Lirik dari LRCLIB + lyrics.ovh</li>
+               <li>Lirik manual (tempel/ketik, upload .txt/.lrc, ambil dari backup)</li>
                <li>Terjemahan lirik (Google / MyMemory)</li>
+               <li>Backup &amp; Restore JSON (pengaturan, playlist, metadata, lirik)</li>
                <li>Media Session (lockscreen control)</li>
                <li>Cover art dari ID3 tag</li>
             </ul>
@@ -780,6 +1030,14 @@ export const TIPS_SECTIONS: TipsSection[] = [
                   <tr>
                      <td>Lirik</td>
                      <td>LRCLIB + lyrics.ovh</td>
+                  </tr>
+                  <tr>
+                     <td>Terjemahan</td>
+                     <td>Google Translate + MyMemory</td>
+                  </tr>
+                  <tr>
+                     <td>Backup / Restore</td>
+                     <td>JSON export/import</td>
                   </tr>
                </tbody>
             </table>

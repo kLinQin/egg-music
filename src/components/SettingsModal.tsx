@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Download, Upload, Trash2, X, FileJson } from 'lucide-react';
+import { Download, Upload, Trash2, X, FileJson, CheckCircle2, AlertTriangle, MinusCircle } from 'lucide-react';
 import { ConfirmDialog } from './ConfirmDialog';
 import { BackupJsonModal } from './BackupJsonModal';
 import { exportData, importData, resetAllData, type ImportResult } from '../lib/db';
@@ -9,18 +9,94 @@ type Props = {
    onClose: () => void;
 };
 
+function SummaryRow({
+   label,
+   added,
+   skipped,
+}: {
+   label: string;
+   added: number;
+   skipped: number;
+}) {
+   const hasAny = added > 0;
+   const dim = added === 0 && skipped === 0;
+   return (
+      <div className={`import-summary-row ${dim ? 'dim' : ''}`}>
+         <span className="import-summary-label">
+            {hasAny ? (
+               <CheckCircle2 size={14} className="import-summary-icon ok" />
+            ) : (
+               <MinusCircle size={14} className="import-summary-icon neutral" />
+            )}
+            {label}
+         </span>
+         <span className="import-summary-value">
+            <span className={added > 0 ? 'import-summary-added' : 'import-summary-zero'}>
+               {added} ditambahkan
+            </span>
+            <span className="import-summary-sep">·</span>
+            <span className={skipped > 0 ? 'import-summary-skipped' : 'import-summary-zero'}>
+               {skipped} dilewati
+            </span>
+         </span>
+      </div>
+   );
+}
+
+function SummaryFlag({
+   label,
+   active,
+}: {
+   label: string;
+   active: boolean;
+}) {
+   return (
+      <div className={`import-summary-row ${active ? '' : 'dim'}`}>
+         <span className="import-summary-label">
+            {active ? (
+               <CheckCircle2 size={14} className="import-summary-icon ok" />
+            ) : (
+               <MinusCircle size={14} className="import-summary-icon neutral" />
+            )}
+            {label}
+         </span>
+         <span className="import-summary-value">
+            <span className={active ? 'import-summary-added' : 'import-summary-zero'}>
+               {active ? 'dipulihkan' : 'tidak ada'}
+            </span>
+         </span>
+      </div>
+   );
+}
+
 export function ImportResultSummary({ result }: { result: ImportResult }) {
    return (
-      <>
-         Import selesai: {result.addedPlaylists} playlist ditambahkan,{' '}
-         {result.skippedPlaylists} dilewati; {result.addedPendingTracks} lirik/lagu
-         pending ditambahkan, {result.skippedPendingTracks} dilewati.
-         {result.restoredEq && <> EQ dipulihkan.</>}
-         {result.restoredLyricsPrefs && <> Preferensi lirik dipulihkan.</>}
+      <div className="import-summary">
+         <div className="import-summary-title">Hasil Import</div>
+
          {result.legacyIgnored && (
-            <> File backup versi lama — track/playlist diabaikan.</>
+            <div className="import-summary-warning">
+               <AlertTriangle size={14} />
+               <span>
+                  File backup versi lama — track/playlist dari file diabaikan. Hanya
+                  pengaturan & lirik pending yang dipulihkan.
+               </span>
+            </div>
          )}
-      </>
+
+         <SummaryRow
+            label="Playlist"
+            added={result.addedPlaylists}
+            skipped={result.skippedPlaylists}
+         />
+         <SummaryRow
+            label="Lagu / lirik pending"
+            added={result.addedPendingTracks}
+            skipped={result.skippedPendingTracks}
+         />
+         <SummaryFlag label="Equalizer" active={result.restoredEq} />
+         <SummaryFlag label="Preferensi lirik" active={result.restoredLyricsPrefs} />
+      </div>
    );
 }
 

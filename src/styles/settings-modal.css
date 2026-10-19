@@ -51,8 +51,8 @@
 }
 
 .settings-success {
-   padding: 10px 12px;
-   border-radius: 6px;
+   padding: 12px 14px;
+   border-radius: 8px;
    background: rgba(29, 185, 84, 0.12);
    border: 1px solid rgba(29, 185, 84, 0.4);
    color: var(--text);
@@ -63,7 +63,116 @@
 .settings-success-actions {
    display: flex;
    gap: 8px;
-   margin-top: 8px;
+   margin-top: 10px;
+}
+
+.settings-inline-actions {
+   display: flex;
+   gap: 8px;
+   flex-wrap: wrap;
+}
+
+/* ===== Import result summary ===== */
+
+.import-summary {
+   display: flex;
+   flex-direction: column;
+   gap: 6px;
+}
+
+.import-summary-title {
+   font-size: 12px;
+   font-weight: 700;
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
+   color: var(--accent);
+   margin-bottom: 2px;
+}
+
+.import-summary-warning {
+   display: flex;
+   align-items: flex-start;
+   gap: 8px;
+   padding: 8px 10px;
+   border-radius: 6px;
+   background: rgba(255, 152, 0, 0.12);
+   border: 1px solid rgba(255, 152, 0, 0.4);
+   color: #ffb74d;
+   font-size: 12px;
+   line-height: 1.5;
+   margin-bottom: 4px;
+}
+
+.import-summary-warning svg {
+   flex-shrink: 0;
+   margin-top: 2px;
+}
+
+.import-summary-row {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 10px;
+   padding: 6px 0;
+   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.import-summary-row:last-child {
+   border-bottom: none;
+}
+
+.import-summary-row.dim {
+   opacity: 0.55;
+}
+
+.import-summary-label {
+   display: inline-flex;
+   align-items: center;
+   gap: 6px;
+   font-size: 12px;
+   font-weight: 600;
+   color: var(--text);
+   min-width: 0;
+}
+
+.import-summary-icon {
+   flex-shrink: 0;
+}
+
+.import-summary-icon.ok {
+   color: var(--accent);
+}
+
+.import-summary-icon.neutral {
+   color: var(--text-dim);
+}
+
+.import-summary-value {
+   display: inline-flex;
+   align-items: center;
+   gap: 6px;
+   font-size: 12px;
+   font-variant-numeric: tabular-nums;
+   white-space: nowrap;
+   flex-shrink: 0;
+}
+
+.import-summary-added {
+   color: var(--accent);
+   font-weight: 700;
+}
+
+.import-summary-skipped {
+   color: var(--text-mute);
+   font-weight: 600;
+}
+
+.import-summary-zero {
+   color: var(--text-dim);
+}
+
+.import-summary-sep {
+   color: var(--text-dim);
 }
 
 @media (max-width: 700px) {
