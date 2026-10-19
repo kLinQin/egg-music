@@ -453,7 +453,7 @@ export function MainView({
          <ConfirmDialog
             open={pendingDeleteTrack !== null}
             title="Hapus Lagu"
-            message={`Hapus lagu "${pendingDeleteTrack?.title || pendingDeleteTrack?.name || ''}" dari library? Lirik manual lagu ini juga akan terhapus.`}
+            message={`Hapus lagu "${pendingDeleteTrack?.title || pendingDeleteTrack?.name || ''}" dari library? Tindakan ini tidak bisa dibatalkan.`}
             confirmLabel="Hapus"
             onConfirm={() => {
                if (pendingDeleteTrack) onDeleteTrack(pendingDeleteTrack.id);

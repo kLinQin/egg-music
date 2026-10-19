@@ -14,7 +14,7 @@
    }
 
    .track-row {
-      grid-template-columns: 28px minmax(140px, 3fr) minmax(100px, 2fr) 50px 70px 60px 55px;
+      grid-template-columns: 28px minmax(140px, 3fr) minmax(100px, 2fr) 50px 70px 60px 55px 32px;
       gap: 8px;
       padding: 6px 20px;
    }
@@ -89,7 +89,7 @@
    }
 
    .track-row {
-      grid-template-columns: 28px minmax(120px, 1fr) 50px 55px;
+      grid-template-columns: minmax(0, 1fr) 70px 50px 32px;
       gap: 8px;
       padding: 8px 16px;
    }
@@ -98,9 +98,27 @@
       padding: 10px 16px 6px;
    }
 
+   .col-index,
    .col-album,
-   .col-bitrate,
+   .col-format,
    .col-size {
       display: none;
+   }
+
+   .col-bitrate {
+      font-size: 11px;
+      text-align: right;
+   }
+
+   .col-duration {
+      text-align: right;
+   }
+
+   .col-action {
+      justify-content: flex-end;
+   }
+
+   .track-delete-btn {
+      opacity: 1;
    }
 }

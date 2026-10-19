@@ -205,7 +205,6 @@ export async function moveTrackToPlaylist(
 export async function deleteTrack(id: string): Promise<void> {
    const db = await getDB();
    await db.delete('tracks', id);
-   await db.delete('manualLyrics', id);
 }
 
 // ==================== PLAYLISTS ====================
@@ -467,7 +466,6 @@ export async function exportData(): Promise<BackupFile> {
    const lyricsByTrackId = new Map<string, string>();
    for (const ml of manualLyrics) lyricsByTrackId.set(ml.trackId, ml.text);
 
-   // Pending track yang sudah ada di store pendingTracks
    const pendingMap = new Map<string, BackupPendingTrack>();
    for (const pt of pendingTracksRaw) {
       pendingMap.set(pt.key, {
@@ -481,7 +479,6 @@ export async function exportData(): Promise<BackupFile> {
       });
    }
 
-   // Track yang sudah ada audio → jadikan pending metadata (untuk restore ke device lain)
    for (const t of tracks) {
       const name = t.name;
       const title = t.title ?? '';
@@ -577,7 +574,6 @@ export async function importData(raw: unknown): Promise<ImportResult> {
    let addedPendingTracks = 0;
    let skippedPendingTracks = 0;
 
-   // ==== Playlist ====
    const playlistSource: BackupPlaylist[] = Array.isArray(raw.playlists)
       ? raw.playlists
          .filter(
@@ -612,7 +608,6 @@ export async function importData(raw: unknown): Promise<ImportResult> {
       addedPlaylists++;
    }
 
-   // ==== Pending tracks ====
    if (Array.isArray(raw.pendingTracks)) {
       for (const pt of raw.pendingTracks) {
          if (!pt || typeof pt.name !== 'string') {
@@ -652,7 +647,6 @@ export async function importData(raw: unknown): Promise<ImportResult> {
 
    await tx.done;
 
-   // ==== Settings ====
    const eqSource = raw.settings?.eq ?? raw.eq;
    const providerSource =
       raw.settings?.lyricsProvider ?? raw.lyricsPrefs?.provider ?? null;
