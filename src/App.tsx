@@ -6,10 +6,11 @@ import { MainView } from './components/MainView';
 import { LyricsSidebar } from './components/LyricsSidebar';
 import { PlayerBar } from './components/PlayerBar';
 import { EqualizerModal } from './components/EqualizerModal';
+import { ConfirmDialog } from './components/ConfirmDialog';
 import { useTracks } from './hooks/useTracks';
 import { usePlaylists } from './hooks/usePlaylists';
 import { usePlayer } from './hooks/usePlayer';
-import { importFolder } from './lib/db';
+import { importFolder, resetAllData } from './lib/db';
 
 function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -25,6 +26,7 @@ function App() {
     () => typeof window === 'undefined' || window.innerWidth > 700
   );
   const [eqOpen, setEqOpen] = useState(false);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
 
   const {
@@ -75,6 +77,17 @@ function App() {
     }
   };
 
+  const handleClearStorage = async () => {
+    setClearConfirmOpen(false);
+    await resetAllData();
+    try {
+      localStorage.clear();
+    } catch {
+      // ignore
+    }
+    location.reload();
+  };
+
   return (
     <div
       className={`app ${sidebarOpen ? '' : 'sidebar-closed'} ${lyricsOpen ? '' : 'lyrics-closed'}`}
@@ -82,6 +95,7 @@ function App() {
       <Header
         onAddFiles={() => fileInputRef.current?.click()}
         onAddFolder={() => folderInputRef.current?.click()}
+        onClearStorage={() => setClearConfirmOpen(true)}
         importProgress={importProgress}
       />
 
@@ -108,6 +122,8 @@ function App() {
           isMobile={isMobile}
           playlists={playlists}
           onSelectPlaylist={setCurrentPlaylistId}
+          onRenamePlaylist={renamePlaylist}
+          onDeletePlaylist={deletePlaylist}
         />
 
         {!isMobile && (
@@ -144,6 +160,15 @@ function App() {
       />
 
       <EqualizerModal open={eqOpen} onClose={() => setEqOpen(false)} />
+
+      <ConfirmDialog
+        open={clearConfirmOpen}
+        title="Hapus Storage"
+        message="Hapus semua lagu, playlist, dan cache lirik? Tindakan ini tidak bisa dibatalkan."
+        confirmLabel="Hapus"
+        onConfirm={handleClearStorage}
+        onCancel={() => setClearConfirmOpen(false)}
+      />
 
       <input
         ref={fileInputRef}

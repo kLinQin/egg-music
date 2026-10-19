@@ -8,6 +8,7 @@ import {
    Pencil,
 } from 'lucide-react';
 import type { Playlist } from '../lib/db';
+import { ConfirmDialog } from './ConfirmDialog';
 
 type Props = {
    open: boolean;
@@ -31,6 +32,7 @@ export function Sidebar({
 }: Props) {
    const [editingId, setEditingId] = useState<string | null>(null);
    const [editName, setEditName] = useState('');
+   const [pendingDelete, setPendingDelete] = useState<Playlist | null>(null);
 
    if (!open) {
       return (
@@ -115,9 +117,7 @@ export function Sidebar({
                               className="btn icon-sm"
                               onClick={(e) => {
                                  e.stopPropagation();
-                                 if (confirm(`Hapus playlist "${pl.name}"? Lagu akan dipindah ke Library.`)) {
-                                    onDeletePlaylist(pl.id);
-                                 }
+                                 setPendingDelete(pl);
                               }}
                               title="Hapus"
                            >
@@ -129,6 +129,18 @@ export function Sidebar({
                );
             })}
          </ul>
+
+         <ConfirmDialog
+            open={pendingDelete !== null}
+            title="Hapus Playlist"
+            message={`Hapus playlist "${pendingDelete?.name ?? ''}"? Lagu akan dipindah ke Library.`}
+            confirmLabel="Hapus"
+            onConfirm={() => {
+               if (pendingDelete) onDeletePlaylist(pendingDelete.id);
+               setPendingDelete(null);
+            }}
+            onCancel={() => setPendingDelete(null)}
+         />
       </aside>
    );
 }

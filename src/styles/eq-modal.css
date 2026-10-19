@@ -1,0 +1,146 @@
+/* ===== Equalizer modal ===== */
+
+.eq-modal-body {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   padding: 8px;
+}
+
+.eq-header-right {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+}
+
+.eq-preset-label {
+   font-size: 11px;
+   font-weight: 700;
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
+   color: var(--text-mute);
+}
+
+.eq-preset-select {
+   background: var(--bg-panel);
+   color: var(--text);
+   border: 1px solid var(--border);
+   border-radius: 6px;
+   padding: 6px 10px;
+   font-size: 13px;
+   font-family: inherit;
+   cursor: pointer;
+   outline: none;
+   transition: border-color 0.15s;
+   min-width: 140px;
+}
+
+.eq-preset-select:hover {
+   border-color: #4a4a4a;
+}
+
+.eq-preset-select:focus {
+   border-color: var(--border);
+}
+
+.eq-mobile-hint {
+   display: none;
+}
+
+/* ===== Mobile: kartu, layout EQ desktop, scroll horizontal ===== */
+
+@media (max-width: 700px) {
+   .modal-backdrop-eq {
+      align-items: center;
+      padding: 20px;
+   }
+
+   .eq-modal {
+      max-width: none;
+      height: auto;
+      max-height: 90vh;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      margin: 0;
+   }
+
+   .eq-modal-body {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
+      min-height: 0;
+      padding: 0;
+      overflow-x: auto;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+   }
+
+   .eq-mobile-hint {
+      display: none;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-mute);
+      text-align: center;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+   }
+
+   weq8-ui {
+      display: block;
+      min-width: 340px;
+      flex-shrink: 0;
+   }
+
+   .eq-header-right {
+      gap: 6px;
+   }
+
+   .eq-preset-select {
+      min-width: 0;
+      flex: 1;
+   }
+}
+
+/* Pesan hanya muncul di mobile portrait */
+@media (max-width: 700px) and (orientation: portrait) {
+   .eq-mobile-hint {
+      display: block;
+   }
+
+   .eq-modal-body {
+      overflow: hidden;
+   }
+}
+
+/* ===== Compact: layar pendek (landscape HP) ===== */
+
+@media (max-height: 500px) {
+   .eq-modal {
+      max-height: 96vh;
+   }
+
+   .eq-modal .modal-header {
+      padding: 8px 12px;
+   }
+
+   .eq-modal .modal-title {
+      font-size: 13px;
+   }
+
+   .eq-preset-label {
+      font-size: 10px;
+   }
+
+   .eq-preset-select {
+      padding: 4px 8px;
+      font-size: 12px;
+      min-width: 110px;
+   }
+
+   .eq-modal-body {
+      padding: 8px;
+   }
+}

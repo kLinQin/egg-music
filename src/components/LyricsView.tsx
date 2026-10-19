@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { Search, X, Music, FileText, Brain } from 'lucide-react';
+import { Search, X, Music, FileText, Brain, Pencil } from 'lucide-react';
 import type { StoredTrack } from '../lib/db';
-import { useLyrics } from '../hooks/useLyrics';
+import { useLyrics, type LyricsProvider } from '../hooks/useLyrics';
 import {
    useTranslatedLyrics,
    type TranslateProvider,
 } from '../hooks/useTranslatedLyrics';
 import { searchLyrics, type LyricsSearchItem } from '../lib/lyrics';
 import { formatTime } from '../lib/audio';
+import { ManualLyricsModal } from './ManualLyricsModal';
 
 export type LyricsMode = 'plain' | 'id' | 'en';
 
@@ -19,7 +20,6 @@ type Props = {
    mode: LyricsMode;
 };
 
-/* ===== Icon Google resmi (SVG) ===== */
 function GoogleIcon({ size = 16 }: { size?: number }) {
    return (
       <svg
@@ -55,9 +55,12 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
       result,
       error,
       provider,
+      hasManual,
       setProvider,
       pickManual,
       pickManualOvh,
+      saveManualText,
+      deleteManualText,
    } = useLyrics(track);
    const activeLineRef = useRef<HTMLParagraphElement>(null);
 
@@ -69,6 +72,9 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
    const [translateProvider, setTranslateProvider] =
       useState<TranslateProvider>('google');
    const [popup, setPopup] = useState<'lyrics' | 'translate' | null>(null);
+
+   const [manualModalOpen, setManualModalOpen] = useState(false);
+   const [manualText, setManualText] = useState('');
 
    const lines = result?.lines ?? [];
    const synced = result?.synced ?? false;
@@ -109,7 +115,6 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
    }, [activeIndex, synced]);
 
-   // Close popup saat klik di luar
    useEffect(() => {
       if (!popup) return;
       const onClick = (e: MouseEvent) => {
@@ -122,7 +127,6 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
       return () => document.removeEventListener('mousedown', onClick);
    }, [popup]);
 
-   // Query gabungan: ambil yang tidak kosong
    const buildQuery = () =>
       [searchArtist.trim(), searchTitle.trim()].filter(Boolean).join(' ');
 
@@ -173,7 +177,16 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
       closeSearch();
    };
 
-   const chooseLyricsProvider = (p: 'lrclib' | 'lyricsovh') => {
+   const chooseLyricsProvider = (p: LyricsProvider) => {
+      if (p === 'manual') {
+         setProvider('manual');
+         setPopup(null);
+         if (!hasManual) {
+            setManualText('');
+            setManualModalOpen(true);
+         }
+         return;
+      }
       setProvider(p);
       setPopup(null);
    };
@@ -182,6 +195,31 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
       setTranslateProvider(p);
       setPopup(null);
    };
+
+   const openManualModal = () => {
+      setProvider('manual');
+      setManualText(result?.plain ?? lines.map((l) => l.text).join('\n'));
+      setManualModalOpen(true);
+      setSearchOpen(false);
+      setPopup(null);
+   };
+
+   const submitManual = async () => {
+      if (!manualText.trim()) return;
+      await saveManualText(manualText);
+      setManualModalOpen(false);
+   };
+
+   const removeManual = async () => {
+      await deleteManualText();
+      setManualModalOpen(false);
+      setManualText('');
+   };
+
+   const searchLinks = [
+      { label: 'Lyricsify', url: 'https://www.lyricsify.com/' },
+      { label: 'LRCLIB', url: 'https://lrclib.net/' },
+   ];
 
    const body = (
       <>
@@ -195,9 +233,9 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
             </div>
          )}
 
-         {track && !loading && (error || !result) && (
+         {track && !loading && !result && (
             <div className="lyrics-view-placeholder">
-               {error || 'Lirik tidak tersedia'}
+               {error || (provider === 'manual' ? 'Belum ada lirik manual untuk lagu ini' : 'Lirik tidak tersedia')}
             </div>
          )}
 
@@ -241,7 +279,6 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
       <div className="lyrics-bottom-bar">
          {!searchOpen ? (
             <>
-               {/* Popup untuk Sumber Lirik */}
                {popup === 'lyrics' && (
                   <div className="lyrics-popup">
                      <button
@@ -258,10 +295,16 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
                         <FileText size={16} />
                         <span>lyrics.ovh</span>
                      </button>
+                     <button
+                        className={`lyrics-popup-item ${provider === 'manual' ? 'active' : ''}`}
+                        onClick={() => chooseLyricsProvider('manual')}
+                     >
+                        <Pencil size={16} />
+                        <span>Manual</span>
+                     </button>
                   </div>
                )}
 
-               {/* Popup untuk Sumber Translate */}
                {popup === 'translate' && showTranslation && (
                   <div className="lyrics-popup">
                      <button
@@ -281,38 +324,80 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
                   </div>
                )}
 
-               {/* Bottom bar 3 kolom */}
                <div className="lyrics-bottom-bar-inner">
                   <button
                      className={`lyrics-bottom-btn lyrics-bottom-btn--left ${popup === 'lyrics' ? 'open' : ''}`}
                      onClick={() => setPopup((p) => (p === 'lyrics' ? null : 'lyrics'))}
                      title="Sumber lirik"
+                     disabled={loading}
                   >
-                     {provider === 'lrclib' ? <Music size={14} /> : <FileText size={14} />}
-                     <span>{provider === 'lrclib' ? 'LRCLIB' : 'lyrics.ovh'}</span>
+                     {loading ? (
+                        <>
+                           <span className="lyrics-btn-spinner" />
+                           <span className="lyrics-btn-label">Memuat...</span>
+                        </>
+                     ) : (
+                        <>
+                           {provider === 'lrclib' ? (
+                              <Music size={14} />
+                           ) : provider === 'lyricsovh' ? (
+                              <FileText size={14} />
+                           ) : (
+                              <Pencil size={14} />
+                           )}
+                           <span className="lyrics-btn-label">
+                              {provider === 'lrclib'
+                                 ? 'LRCLIB'
+                                 : provider === 'lyricsovh'
+                                    ? 'lyrics.ovh'
+                                    : 'Manual'}
+                           </span>
+                        </>
+                     )}
                   </button>
 
                   <button
                      className={`lyrics-bottom-btn lyrics-bottom-btn--middle ${popup === 'translate' ? 'open' : ''}`}
                      onClick={() => showTranslation && setPopup((p) => (p === 'translate' ? null : 'translate'))}
-                     disabled={!showTranslation}
+                     disabled={!showTranslation || translating}
                      title="Sumber terjemahan"
                   >
-                     {translateProvider === 'google' ? (
-                        <GoogleIcon size={14} />
+                     {translating ? (
+                        <>
+                           <span className="lyrics-btn-spinner" />
+                           <span className="lyrics-btn-label">{translation.progress}%</span>
+                        </>
                      ) : (
-                        <Brain size={14} />
+                        <>
+                           {translateProvider === 'google' ? (
+                              <GoogleIcon size={14} />
+                           ) : (
+                              <Brain size={14} />
+                           )}
+                           <span className="lyrics-btn-label">
+                              {translateProvider === 'google' ? 'Google' : 'MyMemory'}
+                           </span>
+                        </>
                      )}
-                     <span>{translateProvider === 'google' ? 'Google' : 'MyMemory'}</span>
                   </button>
 
-                  <button
-                     className="lyrics-bottom-btn lyrics-bottom-btn--right"
-                     onClick={openSearch}
-                     title="Cari lirik manual"
-                  >
-                     <Search size={16} />
-                  </button>
+                  {provider === 'manual' ? (
+                     <button
+                        className="lyrics-bottom-btn lyrics-bottom-btn--right"
+                        onClick={openManualModal}
+                        title="Edit lirik manual"
+                     >
+                        <Pencil size={16} />
+                     </button>
+                  ) : (
+                     <button
+                        className="lyrics-bottom-btn lyrics-bottom-btn--right"
+                        onClick={openSearch}
+                        title="Cari lirik manual"
+                     >
+                        <Search size={16} />
+                     </button>
+                  )}
                </div>
             </>
          ) : (
@@ -400,6 +485,19 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
       </div>
    );
 
+   const manualModal = (
+      <ManualLyricsModal
+         open={manualModalOpen}
+         initialText={manualText}
+         hasManual={hasManual}
+         searchLinks={searchLinks}
+         onChange={setManualText}
+         onSave={submitManual}
+         onDelete={removeManual}
+         onClose={() => setManualModalOpen(false)}
+      />
+   );
+
    if (variant === 'sidebar') {
       return (
          <div className="lyrics-sidebar-view">
@@ -408,6 +506,7 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
             </div>
             {overlay}
             {searchBar}
+            {manualModal}
          </div>
       );
    }
@@ -417,6 +516,7 @@ export function LyricsView({ track, currentTime, isPlaying, variant, mode }: Pro
          <div className="lyrics-scroll">{body}</div>
          {overlay}
          {searchBar}
+         {manualModal}
       </div>
    );
 }

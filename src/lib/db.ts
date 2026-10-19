@@ -29,6 +29,12 @@ export type Playlist = {
    isSystem: boolean;
 };
 
+export type ManualLyrics = {
+   trackId: string;
+   text: string;
+   updatedAt: number;
+};
+
 interface MusicDB extends DBSchema {
    tracks: {
       key: string;
@@ -40,10 +46,14 @@ interface MusicDB extends DBSchema {
       value: Playlist;
       indexes: { 'by-createdAt': number };
    };
+   manualLyrics: {
+      key: string;
+      value: ManualLyrics;
+   };
 }
 
 const DB_NAME = 'music-player';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 let dbPromise: Promise<IDBPDatabase<MusicDB>> | null = null;
 
@@ -79,8 +89,9 @@ function getDB() {
                }
             }
 
-            // v3: field bitrate/sampleRate/channels/codec (tidak butuh migrasi — track lama
-            //      akan undefined, artinya tampil "—" sampai di-import ulang)
+            if (oldVersion < 4) {
+               db.createObjectStore('manualLyrics', { keyPath: 'trackId' });
+            }
          },
       });
    }
@@ -174,6 +185,7 @@ export async function moveTrackToPlaylist(
 export async function deleteTrack(id: string): Promise<void> {
    const db = await getDB();
    await db.delete('tracks', id);
+   await db.delete('manualLyrics', id);
 }
 
 // ==================== PLAYLISTS ====================
@@ -233,6 +245,28 @@ export async function deletePlaylist(id: string): Promise<void> {
    await tx.done;
 }
 
+// ==================== MANUAL LYRICS ====================
+
+export async function getManualLyrics(trackId: string): Promise<ManualLyrics | null> {
+   const db = await getDB();
+   const entry = await db.get('manualLyrics', trackId);
+   return entry ?? null;
+}
+
+export async function setManualLyrics(trackId: string, text: string): Promise<void> {
+   const db = await getDB();
+   await db.put('manualLyrics', {
+      trackId,
+      text,
+      updatedAt: Date.now(),
+   });
+}
+
+export async function deleteManualLyrics(trackId: string): Promise<void> {
+   const db = await getDB();
+   await db.delete('manualLyrics', trackId);
+}
+
 // ==================== IMPORT FOLDER ====================
 
 export type FolderImportResult = {
@@ -269,4 +303,21 @@ export async function importFolder(
    }
 
    return { playlist, addedCount, skippedCount };
+}
+
+// ==================== RESET ====================
+
+export async function resetAllData(): Promise<void> {
+   const db = await getDB();
+   const tx = db.transaction(['tracks', 'playlists', 'manualLyrics'], 'readwrite');
+   await tx.objectStore('tracks').clear();
+   await tx.objectStore('playlists').clear();
+   await tx.objectStore('manualLyrics').clear();
+   await tx.done;
+   await db.put('playlists', {
+      id: LIBRARY_ID,
+      name: 'Library',
+      createdAt: Date.now(),
+      isSystem: true,
+   });
 }

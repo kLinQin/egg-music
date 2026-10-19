@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Music, ListMusic, Library, Lightbulb } from 'lucide-react';
+import { Music, ListMusic, Library, Lightbulb, Pencil, Trash2 } from 'lucide-react';
 import type { StoredTrack, Playlist } from '../lib/db';
 import { formatTime, coverToUrl } from '../lib/audio';
 import { LyricsPanel } from './LyricsPanel';
 import { TipsView } from './TipsView';
+import { ConfirmDialog } from './ConfirmDialog';
 
 type Tab = 'playlist' | 'tracks' | 'lyrics' | 'tips';
 
@@ -17,6 +18,8 @@ type Props = {
    isMobile: boolean;
    playlists: Playlist[];
    onSelectPlaylist: (id: string) => void;
+   onRenamePlaylist: (id: string, name: string) => void;
+   onDeletePlaylist: (id: string) => void;
 };
 
 function getFormat(track: StoredTrack): string {
@@ -90,9 +93,14 @@ export function MainView({
    isMobile,
    playlists,
    onSelectPlaylist,
+   onRenamePlaylist,
+   onDeletePlaylist,
 }: Props) {
    const covers = usePlaylistCovers(tracks);
    const [tab, setTab] = useState<Tab>('tracks');
+   const [editingPlaylistId, setEditingPlaylistId] = useState<string | null>(null);
+   const [editPlaylistName, setEditPlaylistName] = useState('');
+   const [pendingDelete, setPendingDelete] = useState<Playlist | null>(null);
    const currentTrack = tracks.find((t) => t.id === currentId) ?? null;
    const currentTrackCover = useTrackCover(currentTrack);
 
@@ -111,6 +119,12 @@ export function MainView({
 
    const totalDuration = tracks.reduce((sum, t) => sum + (t.duration ?? 0), 0);
    const hasCovers = covers.length > 0;
+
+   const submitPlaylistRename = (id: string) => {
+      if (editPlaylistName.trim()) onRenamePlaylist(id, editPlaylistName);
+      setEditingPlaylistId(null);
+      setEditPlaylistName('');
+   };
 
    const renderHeader = () => {
       // ==== Tips tab: header dengan cover icon ====
@@ -275,11 +289,13 @@ export function MainView({
             <div className="mobile-playlist-list">
                {playlists.map((pl) => {
                   const active = pl.id === playlist?.id;
+                  const isEditing = editingPlaylistId === pl.id;
                   return (
                      <div
                         key={pl.id}
                         className={`mobile-playlist-item ${active ? 'current' : ''}`}
                         onClick={() => {
+                           if (isEditing) return;
                            onSelectPlaylist(pl.id);
                            setTab('tracks');
                         }}
@@ -287,7 +303,49 @@ export function MainView({
                         <span className="playlist-icon">
                            {pl.isSystem ? <Library size={16} /> : <ListMusic size={16} />}
                         </span>
-                        <span className="playlist-name">{pl.name}</span>
+
+                        {isEditing ? (
+                           <input
+                              autoFocus
+                              className="playlist-input inline"
+                              value={editPlaylistName}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) => setEditPlaylistName(e.target.value)}
+                              onKeyDown={(e) => {
+                                 if (e.key === 'Enter') submitPlaylistRename(pl.id);
+                                 if (e.key === 'Escape') setEditingPlaylistId(null);
+                              }}
+                              onBlur={() => submitPlaylistRename(pl.id)}
+                           />
+                        ) : (
+                           <span className="playlist-name">{pl.name}</span>
+                        )}
+
+                        {!pl.isSystem && !isEditing && (
+                           <div className="playlist-actions">
+                              <button
+                                 className="btn icon-sm"
+                                 onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingPlaylistId(pl.id);
+                                    setEditPlaylistName(pl.name);
+                                 }}
+                                 title="Rename"
+                              >
+                                 <Pencil size={12} />
+                              </button>
+                              <button
+                                 className="btn icon-sm"
+                                 onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPendingDelete(pl);
+                                 }}
+                                 title="Hapus"
+                              >
+                                 <Trash2 size={12} />
+                              </button>
+                           </div>
+                        )}
                      </div>
                   );
                })}
@@ -357,6 +415,18 @@ export function MainView({
          )}
 
          {tab === 'tips' && <TipsView />}
+
+         <ConfirmDialog
+            open={pendingDelete !== null}
+            title="Hapus Playlist"
+            message={`Hapus playlist "${pendingDelete?.name ?? ''}"? Lagu akan dipindah ke Library.`}
+            confirmLabel="Hapus"
+            onConfirm={() => {
+               if (pendingDelete) onDeletePlaylist(pendingDelete.id);
+               setPendingDelete(null);
+            }}
+            onCancel={() => setPendingDelete(null)}
+         />
       </main>
    );
 }

@@ -1,0 +1,16 @@
+{
+   "rewrites": [
+      {
+         "source": "/api/lrclib/:path*",
+         "destination": "https://lrclib.net/api/:path*"
+      },
+      {
+         "source": "/api/lyricsovh/:path*",
+         "destination": "https://api.lyrics.ovh/:path*"
+      },
+      {
+         "source": "/api/gtranslate/:path*",
+         "destination": "https://translate.googleapis.com/:path*"
+      }
+   ]
+}
